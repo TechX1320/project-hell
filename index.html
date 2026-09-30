@@ -10,14 +10,31 @@
 <div class="wrap">
   <div class="title">
     <div><h1>WRENCH LIFE <span class="small">// BUILT NOT BOUGHT</span></h1><p>18 years old. Parents' driveway. Bad tools. Worse decisions.</p></div>
-    <div class="small">TEXT PROTOTYPE - NO ART - NO BACKEND</div>
+    <div class="title-tools"><span class="small">LOCAL ALPHA // NO ACCOUNT</span><button id="menuBtn" class="menu-mini hidden">MENU</button></div>
   </div>
 
-  <section id="start"><div class="panel" style="width:100%"><h2>Pick your first bad decision</h2><p class="small">Starting cash: $3,000 - 8:00 AM - some garage leftovers - almost no useful experience.</p><div class="choice-grid" id="carChoices"></div></div></section>
+  <section id="menu" class="menu-screen">
+    <div class="menu-shell">
+      <div class="menu-logo" aria-hidden="true">🔧</div>
+      <div class="menu-wordmark">WRENCH LIFE</div>
+      <div class="menu-tagline">BUILT NOT BOUGHT</div>
+      <p class="menu-copy">Buy something questionable. Learn the hard way. Keep it alive.</p>
+      <div class="menu-actions">
+        <button id="continueBtn" class="primary" onclick="continueLatest()">CONTINUE</button>
+        <button onclick="openNewGameMenu()">NEW GAME<br><span class="small">Random or player-entered seed</span></button>
+        <button onclick="openLoadMenu()">LOCAL SAVES<br><span class="small">3 browser save slots</span></button>
+        <button disabled>WEEKLY CHALLENGE<br><span class="small">Seeded challenge mode coming next</span></button>
+        <button onclick="openSettings()">SETTINGS</button>
+      </div>
+      <div id="localSaveStatus" class="small menu-status">No local saves yet</div>
+    </div>
+  </section>
+
+  <section id="start" class="hidden"><div class="panel starter-panel" style="width:100%"><div class="jobhead"><div><h2>Pick your first bad decision</h2><p class="small">Starting cash: $3,000 - 8:00 AM - some garage leftovers - almost no useful experience.</p></div><span id="newGameSeedLabel" class="tag"></span></div><div class="choice-grid" id="carChoices"></div><div class="modal-actions"><button onclick="cancelStarterSelection()">BACK TO MAIN MENU</button></div></div></section>
 
   <section id="game" class="game hidden">
     <div class="panel">
-      <div class="clockline"><h2 id="carName">Project Car</h2><div><span id="clockTag" class="tag"></span><span id="awakeTag" class="tag"></span></div></div>
+      <div class="clockline"><h2 id="carName">Project Car</h2><div><button id="seedBtn" class="tag seed-button" title="Run seed"></button><span id="clockTag" class="tag"></span><span id="awakeTag" class="tag"></span></div></div>
       <div class="topstats">
         <div class="stat"><span>DAY</span><b id="day">1</b></div>
         <div class="stat"><span>TIME</span><b id="time">8:00 AM</b></div>
@@ -70,7 +87,9 @@
 <script src="src/data/store.js"></script>
 <script src="src/data/gameplay.js"></script>
 <script src="src/data/world.js"></script>
+<script src="src/core/rng.js"></script>
 <script src="src/core/state.js"></script>
+<script src="src/core/save.js"></script>
 <script src="src/core/vehicle.js"></script>
 <script src="src/core/knowledge.js"></script>
 <script src="src/core/game-state.js"></script>
@@ -103,6 +122,7 @@
 <script src="src/systems/events.js"></script>
 <script src="src/systems/work.js"></script>
 <script src="src/systems/sleep.js"></script>
+<script src="src/core/menu.js"></script>
 <script src="src/core/bootstrap.js"></script>
 </body>
 </html>

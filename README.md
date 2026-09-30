@@ -2,79 +2,44 @@
 
 **Built Not Bought.**
 
-Text-first project-car ownership, repair, restoration, and bad-decision simulator. The repository name remains `project-hell` for now so the existing GitHub Pages URL keeps working.
+Text-first project-car ownership, repair, restoration, and bad-decision simulator.
 
-## Modular prototype baseline
+## Current playable shell
 
-The original V0.21 single-file prototype has now been fully separated into focused static JavaScript files without intentionally changing gameplay. There is still no framework, build step, account system, or backend.
+The modular prototype now has a real local-first game shell:
 
-```text
-index.html
-css/
-  app.css
-src/
-  data/
-    cars.js
-    store.js
-    gameplay.js
-    world.js
-  core/
-    state.js
-    vehicle.js
-    knowledge.js
-    game-state.js
-    reputation.js
-    time.js
-    log.js
-    ftue.js
-    ui.js
-    bootstrap.js
-  systems/
-    garage.js
-    world.js
-    vehicle-market.js
-    parts-market.js
-    junkyard-generation.js
-    junkyard-network.js
-    junkyard.js
-    junkyard-pull.js
-    swap-meet.js
-    part-sales.js
-    store.js
-    project-task-rules.js
-    body-work.js
-    project-work.js
-    project-parts.js
-    mechanical-work.js
-    dtc-repair.js
-    project-service.js
-    failures.js
-    research.js
-    side-jobs.js
-    events.js
-    work.js
-    sleep.js
-```
+- Main menu
+- 3 local browser save slots
+- Continue / Load
+- Autosave
+- New Game seed setup
+- Random shareable seeds
+- Player-entered seeds
+- Exact RNG-state persistence when continuing a save
+- Day 1 FTUE default setting
+- In-game menu and seed display
 
-## Next milestone
+There is still **no account system or backend**. Saves are intentionally local to the current browser/device.
 
-The migration is considered complete enough for a full regression playthrough. After that test, development can move into the real Wrench Life shell:
+## Deterministic runs
 
-1. Main menu
-2. Local save slots / Continue
-3. New Game flow
-4. Random and player-entered deterministic seeds
-5. Settings
-6. Weekly Challenge plumbing
+A New Game seed initializes Wrench Life's deterministic random stream. While a run is active, existing gameplay calls to `Math.random()` are backed by the seeded Wrench Life RNG.
 
-The first playable release remains **local single-player**. User registration, online accounts, player trading, and other backend-dependent features are intentionally deferred.
+The save file stores both the visible seed and the current RNG state. Loading a save continues from the exact random-stream position rather than restarting the seed.
+
+Player choices can still make two runs with the same seed diverge because they consume different random events in different orders. That is intentional.
+
+## Next milestones
+
+1. Long regression playthrough of saves + seeded runs
+2. Main-menu polish
+3. Weekly Challenge local prototype
+4. Seed-aware run summary / scoring
+5. More vehicle-generation and fitment data
+6. Only later: accounts, cloud saves, friends, trading, and leaderboards
 
 ## GitHub Pages
 
 `https://techx1320.github.io/project-hell/`
 
-All assets use relative paths so the game works under the GitHub Pages repository subpath.
-
-## Development rule
-
-Do not silently expand scope. Preserve the playable baseline during architectural work, then add new systems deliberately.
+The repository name remains `project-hell` for now so the existing Pages URL keeps working.
