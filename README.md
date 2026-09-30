@@ -42,4 +42,4 @@ Player choices can still make two runs with the same seed diverge because they c
 
 `https://techx1320.github.io/project-hell/`
 
-The repository name remains `project-hell` for now so the existing Pages URL keeps working.
+GitHub Pages for this repository is configured to publish from `main` / `docs`, so the playable app now lives under `docs/` (`docs/index.html`, `docs/css/`, and `docs/src/`). The repository name remains `project-hell` for now so the existing Pages URL keeps working.
