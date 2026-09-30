@@ -1,0 +1,82 @@
+const NO_START_CAUSES={
+  battery:{item:'battery_12v',cat:'Electrical',group:'no_crank',symptom:'one heavy click and the lights sag hard'},
+  starter:{item:'starter',cat:'Electrical',group:'no_crank',symptom:'the dash stays bright but the engine will not crank normally'},
+  ignition:{item:'spark_set',cat:'Engine',group:'crank_no_fire',symptom:'the engine cranks normally but never catches'},
+  timing:{item:'timing_kit',cat:'Engine',group:'mechanical',symptom:'the engine cranks strangely fast / uneven'}
+};
+function noStartCause(source='legacy'){
+  if(source==='starter')return 'starter';
+  if(source==='plugs')return 'ignition';
+  if(source==='timing'||source==='head'||source==='cams')return 'timing';
+  return 'battery';
+}
+function ensureNoStartIssue(source='legacy'){
+  if(S.startable)return null;
+  if(S.noStartIssue)return S.noStartIssue;
+  const cause=noStartCause(source),d=NO_START_CAUSES[cause];
+  S.noStartIssue={id:`NS-${S.activeProjectUid||'p1'}-${S.projectClues||0}`,cause,item:d.item,cat:d.cat,group:d.group,symptom:d.symptom,diagnosed:false,researched:false,fixed:false,tries:0};
+  return S.noStartIssue;
+}
+function setNoStartIssue(source='legacy'){S.startable=false;return ensureNoStartIssue(source)}
+function createNoStartLead(){
+  const n=ensureNoStartIssue();if(!n||n.researched)return;
+  if(S.learningLead&&!S.learningLead.noStart){showModal('<h2>Finish the current lead first</h2><div class="card"><p>You already have another focused research lead open.</p></div><div class="modal-actions"><button onclick="openProjectState()">BACK</button></div>');return}
+  if(!S.learningLead&&maybeCreateLead(`no-start symptom: ${n.symptom}`,S.car.make,n.cat,1)){S.learningLead.noStart=true;S.learningLead.truth=true;S.learningLead.sourceMake=S.car.make}
+  openResearch();
+}
+function diagnoseNoStart(){
+  const n=ensureNoStartIssue();if(!n||n.diagnosed)return openProjectState();
+  passTime(.75,true);n.diagnosed=true;addLog(`No-start diagnosis: ${n.symptom}. Now you have something specific to research.`,'warn');createNoStartLead();render();
+}
+function noStartOptions(n=ensureNoStartIssue()){
+  if(!n)return [];
+  if(n.group==='no_crank')return [
+    {id:'battery_terminal_kit',label:'Clean / repair battery terminals',req:7,h:.8},
+    {id:'battery_12v',label:'Replace the 12V battery',req:8,h:.8},
+    {id:'starter',label:'Replace the starter motor',req:31,h:4}
+  ];
+  if(n.group==='crank_no_fire')return [
+    {id:'spark_set',label:'Re-check / replace spark plugs',req:10,h:1.5},
+    {id:'ignition_coil',label:'Replace a suspect ignition coil',req:16,h:1}
+  ];
+  return [
+    {id:'spark_set',label:'Re-check ignition basics',req:10,h:1.5},
+    {id:'timing_kit',label:'Re-open / verify timing service',req:44,h:6}
+  ];
+}
+function scanProjectState(){
+  const sc=bestScanner();if(!sc)return;
+  if(S.activeCodes.length){scanProjectCodes();return}
+  passTime(.2,true);const n=!S.startable?ensureNoStartIssue():null;
+  let detail='No stored generic powertrain DTCs.';
+  if(n&&n.group==='no_crank')detail='No stored generic DTCs. A no-crank can still be battery, cable, or starter related.';
+  if(n&&n.group==='crank_no_fire')detail='No stored generic DTCs. The engine cranks, so spark / fuel / sensor diagnosis still matters.';
+  if(n&&n.group==='mechanical')detail='No stored generic DTCs. Mechanical / timing faults may not give the scanner anything useful.';
+  addLog(`Scan with ${sc.name}: ${detail}`,'day');
+  showModal(`<h2>Scan results - ${sc.name}</h2><div class="card"><p><b>NO STORED GENERIC DTCs</b></p><p>${detail}</p><p class="small">No code does not mean no fault.</p></div><div class="modal-actions"><button onclick="openProjectState()">BACK</button></div>`);
+}
+function openProjectState(){
+  const n=!S.startable?ensureNoStartIssue():null,sc=bestScanner();
+  showModal(`<h2>Project State - ${S.car.name}</h2><div class="card"><div class="market-meta"><div><span>STATE</span><b>${S.startable?(S.driveable?'STARTS / DRIVES':'STARTS / IMMOBILE'):'NO START'}</b></div><div><span>CEL</span><b>${S.activeCodes.length?'ON':'OFF'}</b></div><div><span>SCANNER</span><b>${sc?sc.name:'NONE'}</b></div><div><span>START TRIES</span><b>${n?.tries||0}</b></div></div><p>${n?(n.fixed?'A repair may have fixed the cause. Try starting it.':n.diagnosed?`Observed: <b>${n.symptom}</b>`:'It will not start, but you have not characterized the symptom yet.'):'The engine is currently considered startable.'}</p></div><div class="modal-actions three"><button class="primary" onclick="attemptProjectStart()">TRY TO START</button><button onclick="diagnoseNoStart()" ${(!n||n.diagnosed)?'disabled':''}>DIAGNOSE NO-START</button><button onclick="scanProjectState()" ${sc?'':'disabled'}>SCAN CAR</button></div><div class="modal-actions three"><button onclick="createNoStartLead()" ${(!n||!n.diagnosed||n.researched)?'disabled':''}>RESEARCH NO-START</button><button onclick="openNoStartRepair()" ${(!n||!n.researched||n.fixed)?'disabled':''}>WORK ON NO-START</button><button onclick="closeModal()">CLOSE</button></div>`);
+}
+function attemptProjectStart(){
+  passTime(.1,true);
+  if(S.startable){addLog('You turn the key. It starts. That is a useful test result.','good');closeModal();render();return}
+  const n=ensureNoStartIssue();n.tries++;
+  if(n.fixed){S.startable=true;S.noStartIssue=null;gainConfidence(S.car.make,n.cat,2);gainRep('workmanship',1);addLog('You turn the key after the repair. It starts. No-start cleared.','good');closeModal();render();return}
+  addLog(`You try to start it: ${n.symptom}. Repeating the key turn is not a diagnosis.`,'bad');openProjectState();render();
+}
+function openNoStartRepair(){
+  const n=ensureNoStartIssue();if(!n||!n.researched)return openProjectState();
+  const cards=noStartOptions(n).map(o=>{const it=item(o.id),owned=S.inventory[o.id]||0,ch=Math.round(chanceFor(o.req,68,S.car.make,n.cat));return `<div class="storeitem"><b>${o.label}</b><span>$${it?.price||0}</span><div class="small">${it?.name||o.id}</div><div class="small">Owned: ${owned} - work success ~${ch}%</div><button onclick="attemptNoStartRepair('${o.id}')" ${owned?'':'disabled'}>${owned?'TRY THIS':'NEED PART'}</button></div>`}).join('');
+  showModal(`<h2>No-start recovery</h2><div class="card"><p><b>Observed:</b> ${n.symptom}</p><p class="small">Research narrows the path. It does not reveal the hidden correct part.</p></div><div class="storegrid">${cards}</div><div class="modal-actions three"><button onclick="storeAisle='engine';storePage=0;openStore()">ENGINE SUPPLIES</button><button onclick="openProjectState()">PROJECT STATE</button><button onclick="showProjectWorkHub()">BACK</button></div>`);
+}
+function attemptNoStartRepair(id){
+  const n=ensureNoStartIssue(),o=noStartOptions(n).find(x=>x.id===id);if(!n||!o||(S.inventory[id]||0)<1)return;
+  S.inventory[id]--;passTime(o.h,true);garageNoiseCheck(o.h);
+  if(Math.random()*100>=chanceFor(o.req,68,S.car.make,n.cat)){S.reliability-=rand(1,3);loseConfidence(S.car.make,n.cat,2);addLog(`The ${item(id)?.name||id} attempt goes badly. The no-start remains.`,'bad');closeModal();render();return}
+  gainExperience(S.car.make,n.cat,id===n.item?2:1);gainConfidence(S.car.make,n.cat,1);
+  if(id===n.item){n.fixed=true;addLog(`The ${item(id)?.name||id} repair matches your strongest theory. Try starting it from Project State.`,'good')}
+  else addLog(`You install / service ${item(id)?.name||id} correctly, but the no-start symptom is unchanged.`,'warn');
+  closeModal();render();
+}
