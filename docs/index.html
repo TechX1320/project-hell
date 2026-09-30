@@ -54,7 +54,7 @@
           <div class="stat"><span>RESTORATION</span><b id="progress">0%</b><div class="bar"><div id="progressBar" class="fill"></div></div></div>
           <div class="stat"><span>RELIABILITY</span><b id="reliability">0%</b><div class="bar"><div id="reliabilityBar" class="fill"></div></div></div>
           <div class="stat"><span>ODOMETER</span><b id="mileage">0 mi</b></div>
-          <div class="stat"><span>PROJECT STATE</span><b id="carState">STARTS</b></div>
+          <div class="stat clickable" id="projectStateStat" title="Try to start, diagnose, or scan the project"><span>PROJECT STATE</span><b id="carState">STARTS</b></div>
           <div class="stat"><span>SIDE JOBS</span><b id="jobsCount">0 waiting</b></div>
           <div class="stat"><span>FATIGUE RISK</span><b id="fatigueRisk">LOW</b></div>
           <div class="stat"><span>OIL SERVICE</span><b id="oilDue">DUE</b></div>
@@ -109,6 +109,7 @@
 <script src="src/systems/swap-meet.js"></script>
 <script src="src/systems/part-sales.js"></script>
 <script src="src/systems/store.js"></script>
+<script src="src/systems/project-state.js"></script>
 <script src="src/systems/project-task-rules.js"></script>
 <script src="src/systems/body-work.js"></script>
 <script src="src/systems/project-work.js"></script>
