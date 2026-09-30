@@ -43,3 +43,8 @@ Player choices can still make two runs with the same seed diverge because they c
 `https://techx1320.github.io/project-hell/`
 
 GitHub Pages for this repository is configured to publish from `main` / `docs`, so the playable app now lives under `docs/` (`docs/index.html`, `docs/css/`, and `docs/src/`). The repository name remains `project-hell` for now so the existing Pages URL keeps working.
+
+
+## No-start recovery
+
+Project State is interactive: try to start the car, scan it with an owned OBD-II reader even when no CEL is stored, diagnose a no-start symptom, follow focused research, and unlock a dedicated recovery card under Work on Project. Existing local saves that were already stuck in a no-start state are migrated into this path instead of remaining soft-locked.
