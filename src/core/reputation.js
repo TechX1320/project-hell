@@ -1,0 +1,8 @@
+function fatigueRisk(){if(S.awakeHours>=24||S.energy<20)return 'EXTREME';if(S.awakeHours>=20||S.energy<35)return 'VERY HIGH';if(S.awakeHours>=16||S.energy<50)return 'HIGH';if(S.awakeHours>=12||S.energy<70)return 'RISING';return 'LOW'}
+function fatiguePenalty(){let p=0;if(S.awakeHours>12)p+=(S.awakeHours-12)*2.3;if(S.energy<70)p+=(70-S.energy)*.22;return p}
+function syncReputation(){const r=S.reputationChannels;S.reputation=clamp(Math.round((r.friends+r.workmanship+r.scene)/3),0,100)}
+function gainRep(channel,n){S.reputationChannels[channel]=clamp((S.reputationChannels[channel]||0)+n,0,100);syncReputation()}
+function effectiveConfidence(make,category){return S.confidence*.45+(S.makeConfidence[make]||0)*.25+(S.skillConfidence[category]||0)*.30}
+function gainConfidence(make,category,n){S.confidence=clamp(S.confidence+Math.max(1,Math.round(n*.45)),0,100);S.makeConfidence[make]=clamp((S.makeConfidence[make]||0)+Math.max(1,Math.round(n*.7)),0,100);S.skillConfidence[category]=clamp((S.skillConfidence[category]||0)+Math.max(1,Math.round(n*.8)),0,100)}
+function loseConfidence(make,category,n){S.confidence=clamp(S.confidence-Math.max(1,Math.round(n*.45)),0,100);S.makeConfidence[make]=clamp((S.makeConfidence[make]||0)-Math.max(1,Math.round(n*.6)),0,100);S.skillConfidence[category]=clamp((S.skillConfidence[category]||0)-Math.max(1,Math.round(n*.7)),0,100)}
+function garageNoiseCheck(hours=1){if(S.location!=='parents')return;const m=minuteOfDay();if((m>=1380||m<360)&&Math.random()<Math.min(.65,.18+hours*.05)){const hit=rand(3,8);S.parentPatience=clamp(S.parentPatience-hit,0,100);addLog(`Late-night wrenching wakes the house. Parent patience -${hit}.`,'warn')}}

@@ -1,10 +1,12 @@
-# Project Hell (working title)
+# Wrench Life
 
-Text-first project-car adventure / restoration game prototype. **Project Hell is only the working title.**
+**Built Not Bought.**
 
-## Refactor phase 1
+Text-first project-car ownership, repair, restoration, and bad-decision simulator. The repository name remains `project-hell` for now so the existing GitHub Pages URL keeps working.
 
-The V0.21 single-file prototype has been moved into GitHub Pages-friendly static files without intentionally changing gameplay. No build system is required yet.
+## Refactor phase 2
+
+The original V0.21 single-file prototype is now split into focused static JavaScript files while intentionally preserving its current gameplay. There is still no framework, build step, account system, or backend.
 
 ```text
 index.html
@@ -17,18 +19,46 @@ src/
     gameplay.js
     world.js
   core/
-    runtime.js
+    state.js
+    vehicle.js
+    knowledge.js
+    game-state.js
+    reputation.js
+    time.js
+    log.js
+    ftue.js
+    ui.js
+    bootstrap.js
   systems/
-    inventory.js
-    project.js
-    activity.js
+    garage.js
+    world.js
+    vehicle-market.js
+    parts-market.js
+    junkyard.js
+    junkyard-pull.js
+    swap-meet.js
+    part-sales.js
+    store.js
+    project-work.js
+    failures.js
+    research.js
+    side-jobs.js
+    events.js
+    work.js
+    sleep.js
 ```
 
-This is deliberately an intermediate migration. The next passes should split `runtime.js` and the system files further into focused state, save, RNG, garage, research, junkyard, marketplace, events, and UI modules while preserving V0.21 behavior.
+## Current goal
+
+Finish the behavior-preserving migration first. After that, add the real Wrench Life shell: main menu, settings, local save slots, deterministic player-entered/random seeds, and weekly-challenge plumbing.
+
+The first playable release remains **local single-player**. User registration, online accounts, player trading, and other backend-dependent features are intentionally deferred.
 
 ## GitHub Pages
 
-Serve from the repository root. `index.html` uses only relative paths, so it works under the `/project-hell/` GitHub Pages subpath.
+The game is served directly from the repository root. All paths are relative, so it works at:
+
+`https://techx1320.github.io/project-hell/`
 
 ## Refactor rule
 
