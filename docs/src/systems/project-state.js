@@ -1,5 +1,6 @@
 const NO_START_CAUSES={
   battery:{item:'battery_12v',cat:'Electrical',group:'no_crank',symptom:'one heavy click and the lights sag hard'},
+  cables:{item:'battery_terminal_kit',cat:'Electrical',group:'no_crank',symptom:'the lights flicker and the starter chatters like the battery connection is barely hanging on'},
   starter:{item:'starter',cat:'Electrical',group:'no_crank',symptom:'the dash stays bright but the engine will not crank normally'},
   ignition:{item:'spark_set',cat:'Engine',group:'crank_no_fire',symptom:'the engine cranks normally but never catches'},
   timing:{item:'timing_kit',cat:'Engine',group:'mechanical',symptom:'the engine cranks strangely fast / uneven'}
@@ -8,13 +9,17 @@ function noStartCause(source='legacy'){
   if(source==='starter')return 'starter';
   if(source==='plugs')return 'ignition';
   if(source==='timing'||source==='head'||source==='cams')return 'timing';
+  if(source==='legacy')return Math.random()<.72?'battery':'cables';
   return 'battery';
 }
 function ensureNoStartIssue(source='legacy'){
   if(S.startable)return null;
-  if(S.noStartIssue)return S.noStartIssue;
+  if(S.noStartIssue){
+    if(S.noStartIssue.cause==='battery'&&!S.noStartIssue.batteryState)S.noStartIssue.batteryState=Math.random()<.58?'discharged':'failed';
+    return S.noStartIssue;
+  }
   const cause=noStartCause(source),d=NO_START_CAUSES[cause];
-  S.noStartIssue={id:`NS-${S.activeProjectUid||'p1'}-${S.projectClues||0}`,cause,item:d.item,cat:d.cat,group:d.group,symptom:d.symptom,diagnosed:false,researched:false,fixed:false,tries:0};
+  S.noStartIssue={id:`NS-${S.activeProjectUid||'p1'}-${S.projectClues||0}`,cause,item:d.item,cat:d.cat,group:d.group,symptom:d.symptom,diagnosed:false,researched:false,fixed:false,tries:0,batteryState:cause==='battery'?(Math.random()<.58?'discharged':'failed'):null,jumpTested:false};
   return S.noStartIssue;
 }
 function setNoStartIssue(source='legacy'){S.startable=false;return ensureNoStartIssue(source)}
@@ -56,8 +61,25 @@ function scanProjectState(){
   showModal(`<h2>Scan results - ${sc.name}</h2><div class="card"><p><b>NO STORED GENERIC DTCs</b></p><p>${detail}</p><p class="small">No code does not mean no fault.</p></div><div class="modal-actions"><button onclick="openProjectState()">BACK</button></div>`);
 }
 function openProjectState(){
-  const n=!S.startable?ensureNoStartIssue():null,sc=bestScanner(),danger=n&&n.group==='mechanical'&&!n.fixed?'<p class="badtxt"><b>MECHANICAL NO-START:</b> repeated start attempts can turn diagnosis into permanent engine damage.</p>':'',endingCountNow=availableGoodEndings().length;
-  showModal(`<h2>Project State - ${S.car.name}</h2><div class="card"><div class="market-meta"><div><span>STATE</span><b>${S.startable?(S.driveable?'STARTS / DRIVES':'STARTS / IMMOBILE'):'NO START'}</b></div><div><span>CEL</span><b>${S.activeCodes.length?'ON':'OFF'}</b></div><div><span>SCANNER</span><b>${sc?sc.name:'NONE'}</b></div><div><span>START TRIES</span><b>${n?.tries||0}</b></div></div><p>${n?(n.fixed?'A repair may have fixed the cause. Try starting it.':n.diagnosed?`Observed: <b>${n.symptom}</b>`:'It will not start, but you have not characterized the symptom yet.'):'The engine is currently considered startable.'}</p>${danger}</div><div class="modal-actions three"><button class="primary" onclick="attemptProjectStart()">TRY TO START</button><button onclick="diagnoseNoStart()" ${(!n||n.diagnosed)?'disabled':''}>DIAGNOSE NO-START</button><button onclick="scanProjectState()" ${sc?'':'disabled'}>SCAN CAR</button></div><div class="modal-actions three"><button onclick="createNoStartLead()" ${(!n||!n.diagnosed||n.researched)?'disabled':''}>RESEARCH NO-START</button><button onclick="openNoStartRepair()" ${(!n||!n.researched||n.fixed)?'disabled':''}>WORK ON NO-START</button><button class="good" onclick="openGoodEndingOptions()" ${endingCountNow?'':'disabled'}>GOOD ENDING${endingCountNow===1?'':'S'} (${endingCountNow})</button></div><div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`);
+  const n=!S.startable?ensureNoStartIssue():null,sc=bestScanner(),hasJump=(S.inventory.jump_pack||0)>0,danger=n&&n.group==='mechanical'&&!n.fixed?'<p class="badtxt"><b>MECHANICAL NO-START:</b> repeated start attempts can turn diagnosis into permanent engine damage.</p>':'',endingCountNow=availableGoodEndings().length;
+  showModal(`<h2>Project State - ${S.car.name}</h2><div class="card"><div class="market-meta"><div><span>STATE</span><b>${S.startable?(S.driveable?'STARTS / DRIVES':'STARTS / IMMOBILE'):'NO START'}</b></div><div><span>CEL</span><b>${S.activeCodes.length?'ON':'OFF'}</b></div><div><span>SCANNER</span><b>${sc?sc.name:'NONE'}</b></div><div><span>JUMP PACK</span><b>${hasJump?'OWNED':'NONE'}</b></div></div><p>${n?(n.fixed?'A repair may have fixed the cause. Try starting it.':n.diagnosed?`Observed: <b>${n.symptom}</b>`:'It will not start, but you have not characterized the symptom yet.'):'The engine is currently considered startable.'}</p>${danger}</div><div class="modal-actions four"><button class="primary" onclick="attemptProjectStart()">TRY TO START</button><button onclick="attemptJumpPack()" ${(!n||!hasJump)?'disabled':''}>TRY JUMP PACK</button><button onclick="diagnoseNoStart()" ${(!n||n.diagnosed)?'disabled':''}>DIAGNOSE NO-START</button><button onclick="scanProjectState()" ${sc?'':'disabled'}>SCAN CAR</button></div><div class="modal-actions three"><button onclick="createNoStartLead()" ${(!n||!n.diagnosed||n.researched)?'disabled':''}>RESEARCH NO-START</button><button onclick="openNoStartRepair()" ${(!n||!n.researched||n.fixed)?'disabled':''}>WORK ON NO-START</button><button class="good" onclick="openGoodEndingOptions()" ${endingCountNow?'':'disabled'}>GOOD ENDING${endingCountNow===1?'':'S'} (${endingCountNow})</button></div><div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`);
+}
+function attemptJumpPack(){
+  if(S.startable||!(S.inventory.jump_pack||0))return openProjectState();
+  const n=ensureNoStartIssue();passTime(.2,true);n.jumpTested=true;
+  if(n.cause==='battery'&&n.batteryState==='discharged'){
+    S.startable=true;S.noStartIssue=null;gainExperience(S.car.make,'Electrical',1);gainConfidence(S.car.make,'Electrical',2);addLog('The jump pack wakes it right up. The battery was discharged, not necessarily dead. You let the car run long enough to recover some charge.','good');closeModal();render();return
+  }
+  if(n.cause==='battery'&&n.batteryState==='failed'){
+    n.diagnosed=true;n.researched=true;n.item='battery_12v';addLog('The jump pack brings the electrical system alive, but the battery falls flat again immediately. That is strong evidence the battery itself is bad. Replacement battery is now the sensible repair.','warn');openProjectState();render();return
+  }
+  if(n.cause==='cables'){
+    n.diagnosed=true;addLog('The jump pack has plenty of power, but the car still flickers / chatters. Battery charge is probably not the whole problem; the terminals and cables deserve attention.','warn');openProjectState();render();return
+  }
+  if(n.cause==='starter'){
+    n.diagnosed=true;addLog('The jump pack changes basically nothing: bright dash, no normal crank. That points you away from a simple dead battery and toward the starting circuit.','warn');openProjectState();render();return
+  }
+  n.diagnosed=true;addLog('The jump pack makes it crank strongly, but it still does not fire. Battery power is probably not the reason for this no-start.','warn');openProjectState();render()
 }
 function attemptProjectStart(){
   passTime(.1,true);

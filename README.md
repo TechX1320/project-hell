@@ -58,3 +58,8 @@ Wrench Life now treats some failures as real run-ending outcomes instead of only
 ## Good endings
 
 Good endings are earned, collectible milestones rather than hard stop points. When a run qualifies, the player can claim the ending and keep playing the same save: collect more cars, finish more projects, chase rare parts, and unlock additional good endings. Current paths cover finishing a dependable project, building a reliable performance car, creating a show-ready car, moving into a real garage, and growing into a multi-project trusted wrench. Bad endings still end the run; good endings do not. Both are tracked locally in the main-menu Endings archive.
+
+
+## Battery jump pack
+
+The Tools aisle includes a reusable portable battery jump pack. During a no-start, Project State can use it as a real diagnostic action: a discharged battery can be jumped and recovered, a failed battery can reveal itself and require replacement, while starter/cable/crank-no-fire problems react differently. The Battery Terminal / Cable Service Kit now lives in the Tools aisle as a consumable rather than a reusable tool.
