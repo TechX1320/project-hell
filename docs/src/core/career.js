@@ -12,7 +12,7 @@ function careerToolName(id){if(id==='scanner')return 'Basic LCD OBD-II Scanner o
 function missingCareerTools(req){return (req||[]).filter(id=>!ownsCareerTool(id))}
 function careerToolList(req){return (req||[]).map(careerToolName).join(', ')}
 function sideJobEligible(j){
- if((S.contacts[j.owner]||50)<=15)return false;
+ if((S.contacts[j.owner]??50)<=15)return false;
  if((j.minDay||1)>dayNum())return false;
  if((j.minKnowledge||0)>S.knowledge)return false;
  if(j.minSkill&&((S.skillKnowledge[j.minSkill[0]]||0)<j.minSkill[1]))return false;
@@ -64,4 +64,4 @@ function partTimePayMultiplier(j){
  return careerStage().shiftPay*rep
 }
 function adjustedShiftPayRange(j){const m=partTimePayMultiplier(j);return [Math.round(j.pay[0]*m/5)*5,Math.round(j.pay[1]*m/5)*5]}
-function toolBlockedSideJobs(){return sideJobTemplates.filter(j=>(j.minDay||1)<=dayNum()&&(j.minKnowledge||0)<=S.knowledge&&(!j.minSkill||(S.skillKnowledge[j.minSkill[0]]||0)>=j.minSkill[1])&&(S.contacts[j.owner]||50)>15&&missingCareerTools(j.requiredTools).length)}
+function toolBlockedSideJobs(){return sideJobTemplates.filter(j=>(j.minDay||1)<=dayNum()&&(j.minKnowledge||0)<=S.knowledge&&(!j.minSkill||(S.skillKnowledge[j.minSkill[0]]||0)>=j.minSkill[1])&&(S.contacts[j.owner]??50)>15&&missingCareerTools(j.requiredTools).length)}
