@@ -93,9 +93,9 @@ const locations={
 
 const carColors=['Black','White','Silver','Red','Blue','Green','Tan','Gold','Purple','Dark Gray'];
 const yardLocations=[
- {id:'east',name:'Eastside U-Pull',distance:6,entry:3,stock:5,desc:'Small local yard. Fast trip, inventory gets picked over quickly.'},
- {id:'county',name:'County Pull & Save',distance:15,entry:4,stock:5,desc:'Bigger rows and more turnover. Usually the best balance of distance and selection.'},
- {id:'river',name:'Riverside Auto Recyclers',distance:28,entry:5,stock:5,desc:'Farther away, but older and stranger cars tend to survive here longer.'},
- {id:'interstate',name:'Interstate Self-Service Auto Parts',distance:52,entry:7,stock:7,desc:'A huge yard way out of town. The drive hurts, but weird cars and less-picked-over inventory can make it worthwhile.'}
+ {id:'east',name:'Eastside U-Pull',distance:6,entry:3,stockMin:7,stockMax:9,desc:'Small local yard. Fast trip, inventory gets picked over quickly.'},
+ {id:'county',name:'County Pull & Save',distance:15,entry:4,stockMin:7,stockMax:10,desc:'Bigger rows and more turnover. Usually the best balance of distance and selection.'},
+ {id:'river',name:'Riverside Auto Recyclers',distance:28,entry:5,stockMin:7,stockMax:10,desc:'Farther away, but older and stranger cars tend to survive here longer.'},
+ {id:'interstate',name:'Interstate Self-Service Auto Parts',distance:52,entry:7,stockMin:8,stockMax:10,desc:'A huge yard way out of town. The drive hurts, but weird cars and less-picked-over inventory can make it worthwhile.'}
 ];
 const cargoByCar={civic:8,miata:3,eclipse:7,civicex:6,integra:7,prelude:6,celica:7,zx2:7,cavalier:7,neon:7,gti:8,bmw328:8,impreza:10,'240sx':6,eclipsegst:7,mustanggt:6};

@@ -16,3 +16,26 @@ const cars=[
 {id:'eclipsegst',make:'Mitsubishi',name:'1997 Mitsubishi Eclipse GS-T',price:3700,reliability:33,progress:41,trait:'Factory turbo, factory temptation',desc:'More performance potential and many more ways to turn money into smoke.',bonusK:0,mileage:165000,oil:'oil_5w30',filter:'filter_mitsu',obd2:true},
 {id:'mustanggt',make:'Ford',name:'1996 Ford Mustang GT',price:3100,reliability:46,progress:34,trait:'V8 noise solves nothing',desc:'Simple enough to understand, old enough to have been launched badly many times.',bonusK:0,mileage:151000,oil:'oil_5w30',filter:'filter_ford',obd2:true}
 ];
+
+const carGenerationMeta={
+ civic:{year:1996,generation:'civic_ek',genStart:1996,genEnd:2000},
+ civicex:{year:1998,generation:'civic_ek',genStart:1996,genEnd:2000},
+ miata:{year:1996,generation:'miata_na',genStart:1990,genEnd:1997},
+ eclipse:{year:1996,generation:'eclipse_2g',genStart:1995,genEnd:1999},
+ eclipsegst:{year:1997,generation:'eclipse_2g',genStart:1995,genEnd:1999},
+ integra:{year:1997,generation:'integra_dc2',genStart:1994,genEnd:2001},
+ prelude:{year:1997,generation:'prelude_5g',genStart:1997,genEnd:2001},
+ celica:{year:1997,generation:'celica_t200',genStart:1994,genEnd:1999},
+ zx2:{year:1998,generation:'escort_zx2',genStart:1998,genEnd:2003},
+ cavalier:{year:1998,generation:'cavalier_3g',genStart:1995,genEnd:2002},
+ neon:{year:1997,generation:'neon_1g',genStart:1995,genEnd:1999},
+ gti:{year:1997,generation:'golf_mk3',genStart:1995,genEnd:1998},
+ bmw328:{year:1998,generation:'bmw_e36_328',genStart:1996,genEnd:1998},
+ impreza:{year:1998,generation:'impreza_gc',genStart:1993,genEnd:2001},
+ '240sx':{year:1997,generation:'240sx_s14',genStart:1995,genEnd:1998},
+ mustanggt:{year:1996,generation:'mustang_sn95',genStart:1994,genEnd:1998}
+};
+for(const c of cars){
+ const parsed=Number(String(c.name).slice(0,4))||1996;
+ Object.assign(c,{year:parsed,generation:c.id,genStart:parsed,genEnd:parsed},carGenerationMeta[c.id]||{});
+}

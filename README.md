@@ -63,3 +63,8 @@ Good endings are earned, collectible milestones rather than hard stop points. Wh
 ## Battery jump pack
 
 The Tools aisle includes a reusable portable battery jump pack. During a no-start, Project State can use it as a real diagnostic action: a discharged battery can be jumped and recovered, a failed battery can reveal itself and require replacement, while starter/cable/crank-no-fire problems react differently. The Battery Terminal / Cable Service Kit now lives in the Tools aisle as a consumable rather than a reusable tool.
+
+
+## Junkyard generations
+
+Pull-A-Part inventory refreshes every in-game day. Each local yard lists roughly 7-10 donors, normally rotates at least one donor daily, and reports new arrivals in the finder. The playable car catalog stays compact while junkyard donors can spawn as multiple model years within a generation. Generic car-specific junkyard parts now carry generation-level fitment, so a compatible same-generation donor can matter without adding every single model year as a separate playable car.

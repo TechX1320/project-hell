@@ -9,10 +9,15 @@ function yardAttritionChance(days,rarity='COMMON',delta=1){
  const mult=rarity==='RARE'?1.55:rarity==='UNCOMMON'?1.2:1;
  return clamp(base*mult*Math.max(1,delta),.002,.22)
 }
+function carGenerationKey(c){return c?.generation||c?.id||''}
+function sameCarGeneration(a,b){return !!a&&!!b&&carGenerationKey(a)===carGenerationKey(b)}
+function yardDonorName(d,c){const y=d?.displayYear||c?.year||Number(String(c?.name||'').slice(0,4))||1996;return `${y} ${String(c?.name||'Unknown car').replace(/^\d{4}\s+/,'')}`}
+function yardDonorMatchesCar(d,target){const donor=cars.find(x=>x.id===d?.carId);return sameCarGeneration(donor,target)}
+function yardStockTarget(y){return rand(y.stockMin||7,y.stockMax||10)}
 function yardPartName(p,c){if(p.kind==='rare')return p.template.name;const k=p.data;if(k.type==='body_panel'){const d=bodyPanelDefs.find(x=>x.id===p.panelKey);return `${d?d.name:'Body panel'} - ${p.panelColor}`}return k.name}
 function yardPartRarity(p){return p.kind==='rare'?(p.template.rarity||'UNCOMMON'):(p.data?.rarity||'COMMON')}
 function yardPartKey(p){if(p.data?.type==='body_panel')return `panel:${p.panelKey}`;const name=p.kind==='rare'?p.template.name:p.data?.name;return `name:${String(name||'part').toLowerCase()}`}
-function yardTemplateFits(t,c){return t.universal||(t.fitCarIds||[]).includes(c.id)||(t.fitMakes||[]).includes(c.make)}
+function yardTemplateFits(t,c){return t.universal||(t.fitCarIds||[]).includes(c.id)||(t.fitGenerations||[]).includes(carGenerationKey(c))||(t.fitMakes||[]).includes(c.make)}
 function weightedJunkRarity(gemBoost=false){const r=Math.random();if(gemBoost)return r<.22?'RARE':r<.62?'UNCOMMON':'COMMON';return r<.055?'RARE':r<.265?'UNCOMMON':'COMMON'}
 function makeYardPart(c,color,days,slot,gemBoost=false,exclude=new Set()){
  const marketGemChance=gemBoost?.30:.055;
@@ -24,9 +29,9 @@ function makeYardPart(c,color,days,slot,gemBoost=false,exclude=new Set()){
  return {kind:'junk',data:k,attempts:0,present:Math.random()*100<yardAvailabilityPct(days,k.rarity||'COMMON'),cost:rand(k.cost[0],k.cost[1]),hours:k.hours,req:k.req,panelKey,panelColor,slots}
 }
 function makeYardDonor(yardId,age=rand(0,16),forcedCarId=null){
- const c=cars.find(x=>x.id===forcedCarId)||cars[rand(0,cars.length-1)],color=carColors[rand(0,carColors.length-1)],parts=[],hiddenParts=[],seen=new Set();
+ const forced=cars.find(x=>x.id===forcedCarId),pool=forced?cars.filter(x=>sameCarGeneration(x,forced)):cars,c=pool[rand(0,pool.length-1)],displayYear=rand(c.genStart||c.year||1996,c.genEnd||c.year||1996),color=carColors[rand(0,carColors.length-1)],parts=[],hiddenParts=[],seen=new Set();
  const addUnique=(target,slot,gem)=>{let p=null;for(let tries=0;tries<30;tries++){p=makeYardPart(c,color,age,slot,gem,seen);const key=yardPartKey(p);if(!seen.has(key)){seen.add(key);target.push(p);return}}if(p)target.push(p)};
  for(let j=0;j<4;j++)addUnique(parts,j,false);
  for(let j=4;j<8;j++)addUnique(hiddenParts,j,true);
- return {id:`yd-${yardId}-${Date.now()}-${Math.random()}`,carId:c.id,color,daysOnYard:age,studied:false,deepSearched:false,desc:['rear-end hit','rusted underneath','engine bay picked over','front-end wreck','looks weirdly complete','insurance total with surprisingly straight sides'][rand(0,5)],parts,hiddenParts}
+ return {id:`yd-${yardId}-${Date.now()}-${Math.random()}`,carId:c.id,displayYear,color,daysOnYard:age,studied:false,deepSearched:false,desc:['rear-end hit','rusted underneath','engine bay picked over','front-end wreck','looks weirdly complete','insurance total with surprisingly straight sides'][rand(0,5)],parts,hiddenParts}
 }
