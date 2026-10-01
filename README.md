@@ -53,3 +53,8 @@ Project State is interactive: try to start the car, scan it with an owned OBD-II
 ## Bad endings
 
 Wrench Life now treats some failures as real run-ending outcomes instead of only stat penalties. Bad endings are seed-driven, saved locally, and visible from the main menu. Current catastrophic paths include financial collapse, destroying an engine after doubling down on critical mechanical work, fuel-system garage fires, and extreme-fatigue / critically-unreliable driving wrecks. These outcomes are intentionally concentrated around telegraphed risky decisions rather than ordinary routine failures.
+
+
+## Good endings
+
+Good endings are earned milestones, not random rolls. When a run qualifies, Wrench Life offers the player a choice to end the run there or keep wrenching and claim it later from Project State. Current good-ending paths cover finishing a dependable project, building a reliable performance car, creating a show-ready car, moving into a real garage, and growing into a multi-project trusted wrench. Good and bad ending discoveries are both tracked locally from the main-menu Endings archive.
