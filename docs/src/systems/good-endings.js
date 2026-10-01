@@ -43,30 +43,28 @@ function completedProjectCount(){
 }
 function availableGoodEndings(){
   if(!S||S.gameOver)return [];
-  return Object.entries(GOOD_ENDING_DEFS).filter(([,d])=>{try{return d.check()}catch{return false}}).map(([id,d])=>({id,...d}));
+  S.goodEndingsEarned=S.goodEndingsEarned||[];
+  return Object.entries(GOOD_ENDING_DEFS).filter(([id,d])=>!S.goodEndingsEarned.includes(id)&&(()=>{try{return d.check()}catch{return false}})()).map(([id,d])=>({id,...d}));
 }
 function triggerGoodEnding(id){
   if(!S||S.gameOver)return false;
   const d=GOOD_ENDING_DEFS[id];if(!d||!d.check())return false;
-  S.gameOver=true;
-  S.goodEnding={id,title:d.title,body:d.body,day:dayNum(),seed:S.runSeed||currentRunSeed(),car:S.car.name,cash:Math.round(S.cash),knowledge:S.knowledge,reputation:S.reputation,reliability:S.reliability,appearance:appearanceScore(),projects:completedProjectCount(),when:Date.now()};
-  recordGoodEnding(S.goodEnding);saveGame();showGoodEndingModal();return true;
+  S.goodEndingsEarned=S.goodEndingsEarned||[];
+  if(S.goodEndingsEarned.includes(id))return false;
+  const ending={id,title:d.title,body:d.body,day:dayNum(),seed:S.runSeed||currentRunSeed(),car:S.car.name,cash:Math.round(S.cash),knowledge:S.knowledge,reputation:S.reputation,reliability:S.reliability,appearance:appearanceScore(),projects:completedProjectCount(),when:Date.now()};
+  S.goodEndingsEarned.push(id);
+  S.lastGoodEnding=ending;
+  if(!S.goodEndingOffersSeen?.includes(id)){S.goodEndingOffersSeen=S.goodEndingOffersSeen||[];S.goodEndingOffersSeen.push(id)}
+  recordGoodEnding(ending);saveGame();showGoodEndingModal();return true;
 }
 function showGoodEndingModal(){
-  if(!S?.goodEnding)return;
-  const e=S.goodEnding;
-  showModal(`<h2>GOOD ENDING: ${e.title}</h2><div class="card endingcard"><p class="goodtxt"><b>${e.body}</b></p><div class="market-meta"><div><span>DAY</span><b>${e.day}</b></div><div><span>CAR</span><b>${e.car}</b></div><div><span>KNOWLEDGE</span><b>${e.knowledge}</b></div><div><span>REPUTATION</span><b>${e.reputation}</b></div></div><p class="seed-display">${e.seed}</p><p class="small">You chose to end this run here. The ending and seed are saved locally.</p></div><div class="modal-actions three"><button class="good" onclick="restartGoodEndingSameSeed()">NEW RUN - SAME SEED</button><button onclick="openEndingsArchive(true)">ENDINGS</button><button onclick="returnFromGoodEnding()">MAIN MENU</button></div>`,'ending');
+  const e=S?.lastGoodEnding;if(!e)return;
+  showModal(`<h2>GOOD ENDING ACHIEVED: ${e.title}</h2><div class="card endingcard"><p class="goodtxt"><b>${e.body}</b></p><div class="market-meta"><div><span>DAY</span><b>${e.day}</b></div><div><span>CAR</span><b>${e.car}</b></div><div><span>KNOWLEDGE</span><b>${e.knowledge}</b></div><div><span>REPUTATION</span><b>${e.reputation}</b></div></div><p class="seed-display">${e.seed}</p><p class="small">This ending is now collected for the run and saved locally. The run is <b>not over</b> — keep buying cars, finishing projects, hunting parts, and collecting other endings.</p></div><div class="modal-actions three"><button class="good" onclick="continueAfterGoodEnding()">CONTINUE WRENCHING</button><button onclick="openEndingsArchive('good')">ENDINGS</button><button onclick="saveAndReturnToMenu()">SAVE + MAIN MENU</button></div>`,'ending');
 }
-function restartGoodEndingSameSeed(){
-  const slot=activeSaveSlot||S?.saveSlot||1,seed=S?.goodEnding?.seed||S?.runSeed||currentRunSeed();
-  deleteSaveSlot(slot);S=null;pendingNewGameSlot=slot;pendingNewGameSeed=seed;activateRunSeed(seed);activeSaveSlot=slot;
-  $('menu').classList.add('hidden');$('game').classList.add('hidden');$('start').classList.remove('hidden');$('menuBtn').classList.add('hidden');
-  $('newGameSeedLabel').textContent='SEED '+seed+' // SLOT '+slot;closeModal();makeCars();
-}
-function returnFromGoodEnding(){closeModal();initMainMenu()}
+function continueAfterGoodEnding(){closeModal();saveGame();render()}
 function offerGoodEnding(id){
-  const d=GOOD_ENDING_DEFS[id];if(!d||!d.check())return false;
-  showModal(`<h2>ENDING AVAILABLE: ${d.title}</h2><div class="card"><p><b>${d.body}</b></p><p class="small">This is a legitimate place to end the run, but Wrench Life does not force you to stop. You can keep wrenching and claim this ending later from Project State.</p></div><div class="modal-actions"><button class="good" onclick="triggerGoodEnding('${id}')">END THE RUN HERE</button><button onclick="keepWrenchingFromGoodEnding()">KEEP WRENCHING</button></div>`,'good-ending-offer');
+  const d=GOOD_ENDING_DEFS[id];if(!d||!d.check()||(S.goodEndingsEarned||[]).includes(id))return false;
+  showModal(`<h2>GOOD ENDING AVAILABLE: ${d.title}</h2><div class="card"><p><b>${d.body}</b></p><p class="small">You reached a major Wrench Life milestone. Claiming it adds it to this run's collection — it does <b>not</b> end the run.</p></div><div class="modal-actions"><button class="good" onclick="triggerGoodEnding('${id}')">CLAIM GOOD ENDING</button><button onclick="keepWrenchingFromGoodEnding()">NOT YET</button></div>`,'good-ending-offer');
   return true;
 }
 function keepWrenchingFromGoodEnding(){
@@ -81,9 +79,10 @@ function maybeOfferGoodEnding(){
   return next?offerGoodEnding(next.id):false;
 }
 function openGoodEndingOptions(){
-  const arr=availableGoodEndings();
-  const rows=arr.length?arr.map(e=>`<div class="card"><div class="jobhead"><b>${e.title}</b><span class="risk">AVAILABLE</span></div><p>${e.body}</p><button class="good" onclick="triggerGoodEnding('${e.id}')">END RUN: ${e.title}</button></div>`).join(''):'<div class="card"><p>No good ending is available yet.</p><p class="small">Keep building. The Endings archive on the main menu has hints.</p></div>';
-  showModal(`<h2>Good Ending Options</h2><div class="card"><p>Good endings are earned, not random. Claiming one ends the current run. Ignoring one never penalizes you.</p></div>${rows}<div class="modal-actions"><button onclick="openProjectState()">BACK TO PROJECT STATE</button></div>`);
+  const arr=availableGoodEndings(),earned=S.goodEndingsEarned||[];
+  const earnedRows=earned.length?earned.map(id=>GOOD_ENDING_DEFS[id]).filter(Boolean).map(e=>`<div class="card"><div class="jobhead"><b>${e.title}</b><span class="goodtxt">COLLECTED THIS RUN</span></div><p class="small">${e.body}</p></div>`).join(''):'';
+  const rows=arr.length?arr.map(e=>`<div class="card"><div class="jobhead"><b>${e.title}</b><span class="risk">AVAILABLE</span></div><p>${e.body}</p><button class="good" onclick="triggerGoodEnding('${e.id}')">CLAIM: ${e.title}</button></div>`).join(''):'<div class="card"><p>No unclaimed good ending is available right now.</p><p class="small">Keep building. The Endings archive on the main menu has hints.</p></div>';
+  showModal(`<h2>Good Endings</h2><div class="card"><p>Good endings are collectible milestones. Claiming one never ends your save.</p></div>${earnedRows}${rows}<div class="modal-actions"><button onclick="openProjectState()">BACK TO PROJECT STATE</button></div>`);
 }
 function openEndingsArchive(fromGame=false){
   const good=readGoodEndings(),bad=readBadEndings(),goodIds=new Set(good.map(e=>e.id)),badIds=new Set(bad.map(e=>e.id));
@@ -95,6 +94,6 @@ function openEndingsArchive(fromGame=false){
     const found=bad.find(e=>e.id===id);
     return found?`<div class="card"><div class="jobhead"><b>${d.title}</b><span class="badtxt">DISCOVERED</span></div><p>${d.body}</p><p class="small">Day ${found.day} - ${found.car} - Seed ${found.seed}</p></div>`:`<div class="card"><div class="jobhead"><b>???</b><span class="small">UNDISCOVERED</span></div><p class="small">Some bad endings are better left undiscovered.</p></div>`;
   }).join('');
-  const back=fromGame?(S?.goodEnding?'showGoodEndingModal()':'showBadEndingModal()'):'closeModal()';
+  const back=fromGame==='good'?'showGoodEndingModal()':fromGame?'showBadEndingModal()':'closeModal()';
   showModal(`<h2>Endings</h2><div class="card"><div class="market-meta"><div><span>GOOD</span><b>${goodIds.size}/${Object.keys(GOOD_ENDING_DEFS).length}</b></div><div><span>BAD</span><b>${badIds.size}/${Object.keys(BAD_ENDING_DEFS).length}</b></div></div><p class="small">Good endings are deliberate goals. Bad endings usually come from ignoring a warning and doubling down.</p></div><h2>Good Endings</h2>${goodRows}<h2>Bad Endings</h2>${badRows}<div class="modal-actions"><button onclick="${back}">BACK</button></div>`,fromGame?'ending':'');
 }

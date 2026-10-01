@@ -57,4 +57,4 @@ Wrench Life now treats some failures as real run-ending outcomes instead of only
 
 ## Good endings
 
-Good endings are earned milestones, not random rolls. When a run qualifies, Wrench Life offers the player a choice to end the run there or keep wrenching and claim it later from Project State. Current good-ending paths cover finishing a dependable project, building a reliable performance car, creating a show-ready car, moving into a real garage, and growing into a multi-project trusted wrench. Good and bad ending discoveries are both tracked locally from the main-menu Endings archive.
+Good endings are earned, collectible milestones rather than hard stop points. When a run qualifies, the player can claim the ending and keep playing the same save: collect more cars, finish more projects, chase rare parts, and unlock additional good endings. Current paths cover finishing a dependable project, building a reliable performance car, creating a show-ready car, moving into a real garage, and growing into a multi-project trusted wrench. Bad endings still end the run; good endings do not. Both are tracked locally in the main-menu Endings archive.

@@ -16,7 +16,7 @@ function saveSummary(slot){
   try{
     const raw=localStorage.getItem(saveKey(slot));if(!raw)return null;
     const p=JSON.parse(raw),st=p.state||{},car=cars.find(c=>c.id===st.carId);
-    return {slot,seed:p.seed||st.runSeed||'UNKNOWN',savedAt:p.savedAt||0,day:Math.floor((st.totalMin||0)/1440)+1,car:car?.name||st.carId||'Unknown car',cash:st.cash??0,knowledge:st.knowledge??0,gameOver:!!st.gameOver,endingType:st.goodEnding?'GOOD':st.badEnding?'BAD':'',endingTitle:st.goodEnding?.title||st.badEnding?.title||''};
+    return {slot,seed:p.seed||st.runSeed||'UNKNOWN',savedAt:p.savedAt||0,day:Math.floor((st.totalMin||0)/1440)+1,car:car?.name||st.carId||'Unknown car',cash:st.cash??0,knowledge:st.knowledge??0,gameOver:!!st.gameOver,endingType:st.badEnding?'BAD':'',endingTitle:st.badEnding?.title||'',goodEndingCount:(st.goodEndingsEarned||[]).length};
   }catch{return null}
 }
 function allSaveSummaries(){return [1,2,3].map(saveSummary)}
@@ -45,7 +45,7 @@ function hydrateLoadedState(state,slot,seed){
   if(!car)throw new Error('Saved project car no longer exists.');
   S=state;S.car=car;S.runSeed=seed;S.saveSlot=slot;
   S.logs=S.logs||[];S.projects=S.projects||[];S.usedParts=S.usedParts||[];S.installedUpgrades=S.installedUpgrades||[];
-  S.seenTips=S.seenTips||{};S.activeCodes=S.activeCodes||[];S.reputationChannels=S.reputationChannels||{friends:0,workmanship:0,scene:0};S.goodEndingOffersSeen=S.goodEndingOffersSeen||[];S.goodEnding=S.goodEnding||null;
+  S.seenTips=S.seenTips||{};S.activeCodes=S.activeCodes||[];S.reputationChannels=S.reputationChannels||{friends:0,workmanship:0,scene:0};S.goodEndingOffersSeen=S.goodEndingOffersSeen||[];S.goodEndingsEarned=S.goodEndingsEarned||[];S.lastGoodEnding=S.lastGoodEnding||null;if(S.goodEnding?.id&&!S.goodEndingsEarned.includes(S.goodEnding.id)){S.goodEndingsEarned.push(S.goodEnding.id);S.lastGoodEnding=S.goodEnding}delete S.goodEnding;if(S.gameOver&&S.lastGoodEnding&&!S.badEnding)S.gameOver=false;
   normalizeInstalledStorage();resetRuntimeIndexes();
 }
 function loadGame(slot){
