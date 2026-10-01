@@ -102,3 +102,8 @@ Project repairs now have real equipment gates. Brakes, suspension, timing, clutc
 Housing now uses Trusted Work Rep for progression so a player does not need to become locally famous at car meets just to move out.
 
 The Parts Store aisle selector was condensed to a three-column desktop layout so the category screen fits a 1080p display without scrolling.
+
+
+## Parts store hours
+
+The normal Parts Store is now explicitly a physical local store, open **8:00 AM-9:00 PM** every day. Travel time matters: the player cannot leave for the store if they would arrive after closing. The main action button remains clickable while closed so the player can see the posted hours. Pull-A-Part, swap meets, Marketplace, and the physical parts store therefore each have distinct availability rules. A future online parts catalog can be added separately instead of implying instant 3:00 AM access to the local store.
