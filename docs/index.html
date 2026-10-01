@@ -24,6 +24,7 @@
         <button onclick="openNewGameMenu()">NEW GAME<br><span class="small">Random or player-entered seed</span></button>
         <button onclick="openLoadMenu()">LOCAL SAVES<br><span class="small">3 browser save slots</span></button>
         <button disabled>WEEKLY CHALLENGE<br><span class="small">Seeded challenge mode coming next</span></button>
+        <button id="badEndingsBtn" onclick="openBadEndingsArchive()">BAD ENDINGS<br><span class="small">Local discovered run endings</span></button>
         <button onclick="openSettings()">SETTINGS</button>
       </div>
       <div id="localSaveStatus" class="small menu-status">No local saves yet</div>
@@ -90,6 +91,7 @@
 <script src="src/core/rng.js"></script>
 <script src="src/core/state.js"></script>
 <script src="src/core/save.js"></script>
+<script src="src/systems/bad-endings.js"></script>
 <script src="src/core/vehicle.js"></script>
 <script src="src/core/knowledge.js"></script>
 <script src="src/core/game-state.js"></script>
