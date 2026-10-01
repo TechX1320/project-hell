@@ -17,7 +17,7 @@ function yardStockTarget(y){return rand(y.stockMin||7,y.stockMax||10)}
 function yardPartName(p,c){if(p.kind==='rare')return p.template.name;const k=p.data;if(k.type==='body_panel'){const d=bodyPanelDefs.find(x=>x.id===p.panelKey);return `${d?d.name:'Body panel'} - ${p.panelColor}`}return k.name}
 function yardPartRarity(p){return p.kind==='rare'?(p.template.rarity||'UNCOMMON'):(p.data?.rarity||'COMMON')}
 function yardPartKey(p){if(p.data?.type==='body_panel')return `panel:${p.panelKey}`;const name=p.kind==='rare'?p.template.name:p.data?.name;return `name:${String(name||'part').toLowerCase()}`}
-function yardTemplateFits(t,c){return t.universal||(t.fitCarIds||[]).includes(c.id)||(t.fitGenerations||[]).includes(carGenerationKey(c))||(t.fitMakes||[]).includes(c.make)}
+function yardTemplateFits(t,c){return t.universal||(t.fitCarIds||[]).includes(c.id)||(t.fitCarIds||[]).some(id=>sameCarGeneration(cars.find(x=>x.id===id),c))||(t.fitGenerations||[]).includes(carGenerationKey(c))||(t.fitMakes||[]).includes(c.make)}
 function weightedJunkRarity(gemBoost=false){const r=Math.random();if(gemBoost)return r<.22?'RARE':r<.62?'UNCOMMON':'COMMON';return r<.055?'RARE':r<.265?'UNCOMMON':'COMMON'}
 function makeYardPart(c,color,days,slot,gemBoost=false,exclude=new Set()){
  const marketGemChance=gemBoost?.30:.055;

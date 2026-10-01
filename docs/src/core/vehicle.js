@@ -1,4 +1,8 @@
-function makeCars(){$('carChoices').innerHTML=cars.filter(c=>c.starter).map(c=>`<div class="car"><h3>${c.name}</h3><span class="tag">${c.trait}</span><p>${c.desc}</p><div class="price">$${c.price.toLocaleString()}</div><button onclick="startGame('${c.id}')">BUY THIS PROBLEM</button></div>`).join('')}
+function starterCarsForSeed(seed=currentRunSeed()){
+ const roles=['easy','fun','wild'];
+ return roles.map(role=>{const pool=cars.filter(c=>c.starterRole===role),h=hashSeed(`${seed}|starter|${role}`);return pool[h%pool.length]})
+}
+function makeCars(){const starters=starterCarsForSeed();$('carChoices').innerHTML=starters.map(c=>`<div class="car"><h3>${c.name}</h3><span class="tag">${c.trait}</span><p>${c.desc}</p><div class="price">${c.price.toLocaleString()}</div><button onclick="startGame('${c.id}')">BUY THIS PROBLEM</button></div>`).join('')}
 
 const bodyPanelDefs=[
  {id:'hood',name:'Hood'},{id:'front_bumper',name:'Front bumper'},{id:'lf_fender',name:'Left front fender'},{id:'rf_fender',name:'Right front fender'},

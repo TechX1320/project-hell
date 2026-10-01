@@ -68,3 +68,12 @@ The Tools aisle includes a reusable portable battery jump pack. During a no-star
 ## Junkyard generations
 
 Pull-A-Part inventory refreshes every in-game day. Each local yard lists roughly 7-10 donors, normally rotates at least one donor daily, and reports new arrivals in the finder. The playable car catalog stays compact while junkyard donors can spawn as multiple model years within a generation. Generic car-specific junkyard parts now carry generation-level fitment, so a compatible same-generation donor can matter without adding every single model year as a separate playable car.
+
+
+## 55-car playtest catalog
+
+The playable vehicle catalog now contains **55 cars** spanning 1986-2014. All cars participate in the same generic junkyard donor-part pool, marketplace systems, body panels, maintenance, diagnostics, and generation-matching logic.
+
+Starter selection is now seed-controlled rather than permanently fixed: each seed receives one EASY, one FUN, and one WILDCARD option from a 12-car starter-eligible pool. The starter selection is derived from the visible run seed without consuming the run's normal RNG stream.
+
+The junkyard catalog is archetype-driven rather than hand-authoring hundreds of unique parts per vehicle. Current content has roughly 117 Marketplace/rare templates plus about 50 core junkyard pull archetypes; donor year, generation, source car, color, condition, rarity, damage, availability, and fitment create the much larger set of generated part instances.
