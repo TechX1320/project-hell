@@ -13,7 +13,7 @@ function renderMainMenu(){
   btn.innerHTML=summary?`CONTINUE<br><span class="small">Slot ${summary.slot} - Day ${summary.day} - ${summary.car}</span>`:'CONTINUE<br><span class="small">No local save yet</span>';
   const slotText=allSaveSummaries().filter(Boolean).length;
   $('localSaveStatus').textContent=slotText?`${slotText}/3 local save slots in use`:'No local saves yet';
-  const eb=$('badEndingsBtn');if(eb)eb.innerHTML=`BAD ENDINGS<br><span class="small">${endingCount()} discovered locally</span>`;
+  const eb=$('endingsBtn');if(eb)eb.innerHTML=`ENDINGS<br><span class="small">Good ${goodEndingCount()}/${Object.keys(GOOD_ENDING_DEFS).length} - Bad ${badEndingUniqueCount()}/${Object.keys(BAD_ENDING_DEFS).length}</span>`;
 }
 
 function continueLatest(){const slot=newestSaveSlot();if(slot)loadGame(slot)}
