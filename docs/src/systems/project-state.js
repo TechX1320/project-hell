@@ -65,7 +65,7 @@ function attemptProjectStart(){
   const n=ensureNoStartIssue();n.tries++;
   if(n.fixed){S.startable=true;S.noStartIssue=null;gainConfidence(S.car.make,n.cat,2);gainRep('workmanship',1);addLog('You turn the key after the repair. It starts. No-start cleared.','good');closeModal();render();return}
   if(n.group==='mechanical'){
-    const chance=Math.min(.38,.06+n.tries*.07+(S.awakeHours>=20?.08:0));
+    const chance=Math.min(.30,.01+n.tries*.045+(S.awakeHours>=20?.08:0));
     if(Math.random()<chance){triggerBadEnding('engine_destroyed','You kept cranking a mechanically unhappy engine until it stopped being a diagnosis problem.');return}
   }
   addLog(`You try to start it: ${n.symptom}. Repeating the key turn is not a diagnosis.`,'bad');openProjectState();render();
