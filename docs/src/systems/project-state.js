@@ -64,6 +64,10 @@ function attemptProjectStart(){
   if(S.startable){addLog('You turn the key. It starts. That is a useful test result.','good');closeModal();render();return}
   const n=ensureNoStartIssue();n.tries++;
   if(n.fixed){S.startable=true;S.noStartIssue=null;gainConfidence(S.car.make,n.cat,2);gainRep('workmanship',1);addLog('You turn the key after the repair. It starts. No-start cleared.','good');closeModal();render();return}
+  if(n.group==='mechanical'){
+    const chance=Math.min(.38,.06+n.tries*.07+(S.awakeHours>=20?.08:0));
+    if(Math.random()<chance){triggerBadEnding('engine_destroyed','You kept cranking a mechanically unhappy engine until it stopped being a diagnosis problem.');return}
+  }
   addLog(`You try to start it: ${n.symptom}. Repeating the key turn is not a diagnosis.`,'bad');openProjectState();render();
 }
 function openNoStartRepair(){
@@ -79,4 +83,13 @@ function attemptNoStartRepair(id){
   if(id===n.item){n.fixed=true;addLog(`The ${item(id)?.name||id} repair matches your strongest theory. Try starting it from Project State.`,'good')}
   else addLog(`You install / service ${item(id)?.name||id} correctly, but the no-start symptom is unchanged.`,'warn');
   closeModal();render();
+}
+
+function markNoStartTaskRepair(taskId){
+  if(S.startable)return false;
+  const n=ensureNoStartIssue(),map={starter:'starter',plugs:'spark_set',timing:'timing_kit',head:'timing_kit'};
+  if(!n)return false;
+  if(map[taskId]&&map[taskId]===n.item){n.fixed=true;addLog('That successful repair matches the current no-start theory. Use Project State to actually try starting the car.','good')}
+  else if(map[taskId])addLog('The repair succeeds, but it does not prove the no-start is fixed. Test it from Project State.','warn');
+  return true;
 }
