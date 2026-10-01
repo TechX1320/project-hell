@@ -77,3 +77,8 @@ The playable vehicle catalog now contains **55 cars** spanning 1986-2014. All ca
 Starter selection is now seed-controlled rather than permanently fixed: each seed receives one EASY, one FUN, and one WILDCARD option from a 12-car starter-eligible pool. The starter selection is derived from the visible run seed without consuming the run's normal RNG stream.
 
 The junkyard catalog is archetype-driven rather than hand-authoring hundreds of unique parts per vehicle. Current content has roughly 117 Marketplace/rare templates plus about 50 core junkyard pull archetypes; donor year, generation, source car, color, condition, rarity, damage, availability, and fitment create the much larger set of generated part instances.
+
+
+## Interior / Trim system
+
+Interior work now mirrors the exterior/body workflow instead of being only a list of owned parts. Each project tracks condition for front seats, rear seats where applicable, dashboard, trim/door cards, radio, speakers, floor mats, floor/carpet/boards, pedals, and steering/shifter trim. Aftermarket subwoofer systems are a separate installable slot. Players can inspect/study, clean, repair/restore, replace, and upgrade individual interior areas; Marketplace and Pull-A-Part inventories include matching interior pieces and audio upgrades. Interior condition now contributes to overall appearance.

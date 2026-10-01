@@ -28,6 +28,10 @@ const storeItems=[
 // Drivetrain aisle
 {id:'clutch_kit',name:'Clutch Kit',price:238,kind:'part',aisle:'drivetrain',desc:'Disc, pressure plate, bearing. Transmission removal sold separately.'},{id:'wheel_bearing',name:'Wheel Bearing',price:72,kind:'part',aisle:'drivetrain',desc:'For when the car sounds like a regional jet.'},{id:'gear_oil',name:'Manual Gear Oil - 4 qt',price:42,kind:'fluid',aisle:'drivetrain',desc:'Some transmissions are very picky about this.'},{id:'cv_axle',name:'Reman CV Axle',price:96,kind:'part',aisle:'drivetrain',desc:'May fix clicking. May introduce a new vibration.'},
 // Body / paint aisle
+{id:'interior_cleaner',name:'Interior Cleaning Kit',price:16,kind:'body_supply',aisle:'interior',desc:'Upholstery cleaner, brushes and plastic-safe cleaner for one focused interior cleanup.'},
+{id:'interior_repair_kit',name:'Interior Trim / Upholstery Repair Supplies',price:24,kind:'body_supply',aisle:'interior',desc:'Small vinyl, fabric, plastic and hardware repairs. Not enough to magically rebuild a destroyed seat.'},
+{id:'contact_cleaner',name:'Electrical Contact Cleaner',price:11,kind:'body_supply',aisle:'interior',desc:'Useful for crusty audio connectors and switches. Does not repair a dead radio by itself.'},
+// Body / paint aisle
 {id:'detail_kit',name:'Wash + Detail Supplies',price:22,kind:'body_supply',aisle:'body',desc:'Soap, microfiber towels, basic polish and enough optimism for one serious cleanup.'},
 {id:'sandpaper_pack',name:'Bodywork Sandpaper Pack',price:14,kind:'body_supply',aisle:'body',desc:'Multiple grits. You will somehow use the wrong one first.'},
 {id:'body_filler',name:'Body Filler + Hardener',price:18,kind:'body_supply',aisle:'body',desc:'For dents after you convince yourself metal finishing is optional.'},
@@ -57,6 +61,7 @@ const storeAisles=[
 {id:'engine',name:'Engine Supplies',desc:'Tune-up parts through “why is the head off?” parts.',unlock:()=>true},
 {id:'tools',name:'Tool Supplies',desc:'Buy individual tools instead of magic toolbox tiers.',unlock:()=>true},
 {id:'body',name:'Body + Paint Supplies',desc:'Detailing, dent repair, rust treatment, primer and paint.',unlock:()=>true},
+{id:'interior',name:'Interior Supplies',desc:'Cleaning, upholstery / trim repair and electrical contact supplies.',unlock:()=>true},
 {id:'wheels',name:'Wheels',desc:'Cheap steelies through used alloys.',unlock:()=>true},
 {id:'tires',name:'Tires',desc:'Used rubber, normal street tires and better grip.',unlock:()=>true},
 {id:'performance',name:'Performance Upgrades',desc:'Opens once the project is healthy enough to justify making it faster.',unlock:()=>S&&S.knowledge>=20&&S.progress>=40,req:'Knowledge 20 + Restoration 40%'},

@@ -16,8 +16,20 @@ const marketplacePartTemplates=[...rarePartTemplates];
  const makeGroups=[['Honda','Acura'],['Mazda'],['Mitsubishi'],['Toyota'],['Ford'],['Chevy','Dodge'],['VW','BMW'],['Subaru','Nissan'],['Honda','Acura','Mazda','Mitsubishi','Toyota','Ford','Chevy','Dodge','VW','BMW','Subaru','Nissan']];
  const wheelNames=['5-spoke alloy wheel set','mesh alloy wheel set','six-spoke touring wheel set','deep-dish period wheel set','lightweight multi-spoke wheel set','OEM-style polished wheel set','black five-spoke wheel set','silver rally-style wheel set'];
  for(let i=0;i<24;i++){const size=14+(i%4),name=`${size}in ${wheelNames[i%wheelNames.length]}`,rare=i%7===0?'RARE':i%3===0?'UNCOMMON':'COMMON';marketplacePartTemplates.push({id:`market_wheel_${i}`,name,type:'wheels',fitMakes:makeGroups[i%makeGroups.length],slots:4,style:3+(i%6),perf:i%4===0?2:1,base:130+(i%8)*45,rarity:rare,desc:'Used wheel set from a private seller. Offset, bends, curb rash and tire age are all your problem.'})}
- const interiors=['Sport front seats','Full cloth seat set','Leather front seats','Center console upgrade','Gauge cluster','OEM leather steering wheel','Shift knob + boot set','Door-card set','Rear seat + trim set','Factory armrest console','Period CD head unit','Cassette head unit','MiniDisc head unit','OEM radio + pocket','Factory amplifier + speaker set','Floor-mat set','Cargo-area trim set','Sun visors + mirror set','Interior switch panel','Cupholder / console insert','Sport pedal set','Factory clock / accessory panel','Map-light upgrade','Glovebox + dash trim','Rare color interior trim set'];
- for(let i=0;i<interiors.length;i++){const rare=i%8===0?'RARE':i%3===0?'UNCOMMON':'COMMON';marketplacePartTemplates.push({id:`market_int_${i}`,name:interiors[i],type:'interior',fitMakes:makeGroups[(i+2)%makeGroups.length],universal:i>=10&&i<=14,slots:i<3?3:1,style:2+(i%6),perf:0,base:35+(i%9)*38,rarity:rare,desc:'Used interior piece. Cleaning can help; broken clips and mystery wiring cannot always be fixed.'})}
+ const interiors=[
+  {name:'Sport front seats',slot:'front_seats'},{name:'Full cloth front seat set',slot:'front_seats'},{name:'Leather front seats',slot:'front_seats'},
+  {name:'Rear seat + trim set',slot:'rear_seat'},{name:'Leather rear seat',slot:'rear_seat'},
+  {name:'Dashboard assembly',slot:'dash'},{name:'Dash pad + vent set',slot:'dash'},{name:'Gauge cluster',slot:'dash'},{name:'Glovebox + dash trim',slot:'dash'},
+  {name:'Center console upgrade',slot:'trim'},{name:'Door-card set',slot:'trim'},{name:'Factory armrest console',slot:'trim'},{name:'Rare color interior trim set',slot:'trim'},
+  {name:'Period CD head unit',slot:'radio',universal:true},{name:'Cassette head unit',slot:'radio',universal:true},{name:'MiniDisc head unit',slot:'radio',universal:true},{name:'OEM radio + pocket',slot:'radio'},
+  {name:'Factory speaker set',slot:'speakers'},{name:'Period component speaker set',slot:'speakers',universal:true},{name:'Factory amplifier + speaker set',slot:'speakers'},
+  {name:'Floor-mat set',slot:'floor_mats',universal:true},{name:'OEM logo floor-mat set',slot:'floor_mats'},
+  {name:'Molded carpet / floor set',slot:'floor_carpet'},{name:'Cargo-area trim + carpet set',slot:'floor_carpet'},
+  {name:'Sport pedal set',slot:'pedals',universal:true},{name:'OEM pedal / dead-pedal set',slot:'pedals'},
+  {name:'OEM leather steering wheel',slot:'controls'},{name:'Shift knob + boot set',slot:'controls',universal:true},
+  {name:'Compact powered subwoofer',slot:'subwoofer',universal:true},{name:'Period 10in subwoofer + amplifier',slot:'subwoofer',universal:true},{name:'Dual 12in trunk subwoofer box',slot:'subwoofer',universal:true}
+ ];
+ for(let i=0;i<interiors.length;i++){const x=interiors[i],rare=i%9===0?'RARE':i%3===0?'UNCOMMON':'COMMON';marketplacePartTemplates.push({id:`market_int_${i}`,name:x.name,type:'interior',interiorSlot:x.slot,fitMakes:x.universal?undefined:makeGroups[(i+2)%makeGroups.length],universal:!!x.universal,slots:x.slot==='front_seats'?3:x.slot==='rear_seat'||x.slot==='floor_carpet'||x.slot==='subwoofer'?2:1,style:2+(i%6),perf:0,base:35+(i%9)*38,rarity:rare,desc:'Used interior piece. Cleaning can help; broken clips, sun damage and mystery wiring cannot always be fixed.'})}
  const bodyBits=['Factory fog-light kit','OEM mud-flap set','Period roof rack','Factory lip spoiler','Side-skirt set','Rear spoiler','Clear corner lamp set','OEM grille','Front lip','Rear valance','Factory splash guards','Mirror pair','Tail-light set','Headlight pair','Dealer accessory wind deflectors'];
  for(let i=0;i<bodyBits.length;i++){marketplacePartTemplates.push({id:`market_body_${i}`,name:bodyBits[i],type:'body',fitMakes:makeGroups[(i+4)%makeGroups.length],slots:i%4===0?2:1,style:2+(i%5),perf:0,base:45+(i%7)*42,rarity:i%6===0?'RARE':i%2?'UNCOMMON':'COMMON',desc:'Old exterior accessory or trim pulled from somebody else\'s build. Fitment and missing hardware are not guaranteed.'})}
  const perf=['Used cold-air intake','Short-ram intake','Header / manifold','Cat-back exhaust','Rear sway bar','Front strut brace','Rear strut brace','Short shifter','Lowering spring set','Adjustable coilover set','Larger throttle body','Lightweight crank pulley','High-flow fuel pump','Adjustable fuel-pressure regulator','Performance injector set','Camshaft set','Adjustable cam gear','Lightweight flywheel','Performance clutch kit','Limited-slip differential core','Oil cooler kit','Catch-can kit','Wideband O2 kit','Boost gauge kit','Aftermarket ECU / piggyback','Performance radiator','Silicone hose kit','Upgraded ignition wire set','Underdrive accessory pulley set','Chassis brace set'];
@@ -35,6 +47,11 @@ const junkPullKinds=[
 {id:'center_console',name:'Center console / cupholder trim',type:'interior',slots:1,style:2,perf:0,cost:[15,45],hours:.8,req:8,fit:'car',rarity:'COMMON'},
 {id:'gauge_cluster',name:'Gauge cluster',type:'interior',slots:1,style:2,perf:0,cost:[18,48],hours:1,req:11,fit:'car',rarity:'COMMON'},
 {id:'switch_pack',name:'Dash switch / control pack',type:'interior',slots:1,style:1,perf:0,cost:[12,35],hours:.7,req:8,fit:'car',rarity:'COMMON'},
+{id:'dash_assembly',name:'Dashboard / dash-pad assembly',type:'interior',interiorSlot:'dash',slots:3,style:2,perf:0,cost:[28,75],hours:1.8,req:16,fit:'car',rarity:'COMMON'},
+{id:'floor_mats_yard',name:'OEM floor-mat set',type:'interior',interiorSlot:'floor_mats',slots:1,style:1,perf:0,cost:[8,28],hours:.3,req:4,fit:'car',rarity:'COMMON'},
+{id:'carpet_set_yard',name:'Molded carpet / floor-board trim',type:'interior',interiorSlot:'floor_carpet',slots:2,style:2,perf:0,cost:[18,55],hours:1.3,req:12,fit:'car',rarity:'COMMON'},
+{id:'speaker_set_yard',name:'Factory speaker set',type:'interior',interiorSlot:'speakers',slots:1,style:1,perf:0,cost:[15,45],hours:.9,req:12,fit:'car',rarity:'COMMON'},
+{id:'pedal_set_yard',name:'Factory pedal / dead-pedal set',type:'interior',interiorSlot:'pedals',slots:1,style:1,perf:0,cost:[10,32],hours:.7,req:9,fit:'car',rarity:'COMMON'},
 {id:'headlights',name:'Headlight pair',type:'body',slots:2,style:2,perf:0,cost:[25,65],hours:1,req:9,fit:'car',rarity:'COMMON'},
 {id:'taillights',name:'Tail-light pair',type:'body',slots:2,style:2,perf:0,cost:[22,60],hours:.9,req:8,fit:'car',rarity:'COMMON'},
 {id:'mirrors',name:'Mirror pair',type:'body',slots:1,style:1,perf:0,cost:[18,50],hours:.9,req:9,fit:'car',rarity:'COMMON'},
@@ -51,6 +68,9 @@ const junkPullKinds=[
 {id:'factory_spoiler',name:'Factory spoiler / exterior trim',type:'body',slots:2,style:4,perf:0,cost:[35,90],hours:1.2,req:10,fit:'car',rarity:'UNCOMMON'},
 {id:'factory_fogs_yard',name:'Factory fog-light set',type:'body',slots:1,style:3,perf:0,cost:[28,70],hours:1.1,req:13,fit:'car',rarity:'UNCOMMON'},
 {id:'premium_audio',name:'Premium factory radio / amplifier',type:'interior',slots:1,style:3,perf:0,cost:[30,85],hours:1,req:12,fit:'car',rarity:'UNCOMMON'},
+{id:'premium_speakers',name:'Premium factory speaker set',type:'interior',interiorSlot:'speakers',slots:1,style:4,perf:0,cost:[35,95],hours:1.1,req:15,fit:'car',rarity:'UNCOMMON'},
+{id:'factory_subwoofer',name:'Factory subwoofer / amplifier module',type:'interior',interiorSlot:'subwoofer',slots:2,style:4,perf:0,cost:[40,110],hours:1.4,req:18,fit:'car',rarity:'UNCOMMON'},
+{id:'sport_pedals_yard',name:'Factory sport pedal set',type:'interior',interiorSlot:'pedals',slots:1,style:4,perf:0,cost:[25,70],hours:.8,req:12,fit:'car',rarity:'UNCOMMON'},
 {id:'sport_seats',name:'Factory sport seat pair',type:'interior',slots:3,style:5,perf:0,cost:[55,135],hours:1.5,req:12,fit:'car',rarity:'UNCOMMON'},
 {id:'leather_wheel',name:'Leather steering wheel / shift trim',type:'interior',slots:1,style:4,perf:0,cost:[28,80],hours:1,req:13,fit:'car',rarity:'UNCOMMON'},
 {id:'sunroof_parts',name:'Sunroof panel / mechanism',type:'body',slots:3,style:2,perf:0,cost:[40,110],hours:2.1,req:22,fit:'car',rarity:'UNCOMMON'},
@@ -70,6 +90,9 @@ const junkPullKinds=[
 {id:'sport_trim_interior',name:'Higher-trim interior conversion pieces',type:'interior',slots:3,style:7,perf:0,cost:[65,180],hours:1.8,req:18,fit:'car',rarity:'RARE'},
 {id:'rare_cluster',name:'Rare sport / high-spec gauge cluster',type:'interior',slots:1,style:6,perf:0,cost:[55,150],hours:1.2,req:18,fit:'car',rarity:'RARE'},
 {id:'period_headunit',name:'Period premium cassette / CD head unit',type:'interior',slots:1,style:5,perf:0,cost:[45,140],hours:1,req:16,fit:'car',rarity:'RARE'},
+{id:'period_sub_system',name:'Period aftermarket subwoofer + amplifier system',type:'interior',interiorSlot:'subwoofer',slots:2,style:7,perf:0,cost:[70,190],hours:1.8,req:22,fit:'make',rarity:'RARE'},
+{id:'rare_dash_trim',name:'Rare high-spec dashboard / trim conversion',type:'interior',interiorSlot:'dash',slots:3,style:7,perf:0,cost:[70,185],hours:1.8,req:20,fit:'car',rarity:'RARE'},
+{id:'component_speakers',name:'Period component speaker / crossover set',type:'interior',interiorSlot:'speakers',slots:1,style:6,perf:0,cost:[55,150],hours:1.3,req:20,fit:'make',rarity:'RARE'},
 {id:'dealer_accessory',name:'Rare dealer accessory package',type:'body',slots:1,style:6,perf:0,cost:[40,135],hours:1,req:14,fit:'car',rarity:'RARE'},
 {id:'rare_tail_lamps',name:'Rare factory / period tail-light set',type:'body',slots:2,style:6,perf:0,cost:[65,180],hours:1.2,req:16,fit:'car',rarity:'RARE'},
 {id:'rare_front_lamps',name:'Rare factory / period headlight set',type:'body',slots:2,style:6,perf:0,cost:[65,185],hours:1.3,req:17,fit:'car',rarity:'RARE'},
