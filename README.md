@@ -48,3 +48,8 @@ GitHub Pages for this repository is configured to publish from `main` / `docs`, 
 ## No-start recovery
 
 Project State is interactive: try to start the car, scan it with an owned OBD-II reader even when no CEL is stored, diagnose a no-start symptom, follow focused research, and unlock a dedicated recovery card under Work on Project. Existing local saves that were already stuck in a no-start state are migrated into this path instead of remaining soft-locked.
+
+
+## Bad endings
+
+Wrench Life now treats some failures as real run-ending outcomes instead of only stat penalties. Bad endings are seed-driven, saved locally, and visible from the main menu. Current catastrophic paths include financial collapse, destroying an engine after doubling down on critical mechanical work, fuel-system garage fires, and extreme-fatigue / critically-unreliable driving wrecks. These outcomes are intentionally concentrated around telegraphed risky decisions rather than ordinary routine failures.
