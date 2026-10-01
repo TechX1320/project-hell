@@ -22,7 +22,7 @@ function openLoadMenu(){
   const rows=[1,2,3].map(slot=>{
     const s=saveSummary(slot);
     if(!s)return `<div class="savecard"><div><b>SLOT ${slot}</b><div class="small">EMPTY</div></div><button disabled>LOAD</button></div>`;
-    return `<div class="savecard"><div><b>SLOT ${slot} - DAY ${s.day}</b><div>${s.car}</div><div class="small">Seed ${s.seed} - $${Math.round(s.cash).toLocaleString()} - Knowledge ${s.knowledge}${s.gameOver?' - RUN OVER':''}</div></div><div class="mini-actions"><button class="primary" onclick="loadGame(${slot})">LOAD</button><button class="danger" onclick="confirmDeleteSlot(${slot})">DELETE</button></div></div>`
+    return `<div class="savecard"><div><b>SLOT ${slot} - DAY ${s.day}</b><div>${s.car}</div><div class="small">Seed ${s.seed} - ${Math.round(s.cash).toLocaleString()} - Knowledge ${s.knowledge}${s.gameOver?` - ${s.endingType||'RUN'} ENDING${s.endingTitle?': '+s.endingTitle:''}`:''}</div></div><div class="mini-actions"><button class="primary" onclick="loadGame(${slot})">LOAD</button><button class="danger" onclick="confirmDeleteSlot(${slot})">DELETE</button></div></div>`
   }).join('');
   showModal(`<h2>Local Saves</h2><div class="card"><p>Saves live only in this browser/device for now. No account or cloud sync.</p></div><div class="savegrid">${rows}</div><div class="modal-actions"><button onclick="closeModal()">BACK</button></div>`)
 }
