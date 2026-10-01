@@ -82,3 +82,23 @@ The junkyard catalog is archetype-driven rather than hand-authoring hundreds of 
 ## Interior / Trim system
 
 Interior work now mirrors the exterior/body workflow instead of being only a list of owned parts. Each project tracks condition for front seats, rear seats where applicable, dashboard, trim/door cards, radio, speakers, floor mats, floor/carpet/boards, pedals, and steering/shifter trim. Aftermarket subwoofer systems are a separate installable slot. Players can inspect/study, clean, repair/restore, replace, and upgrade individual interior areas; Marketplace and Pull-A-Part inventories include matching interior pieces and audio upgrades. Interior condition now contributes to overall appearance.
+
+
+## Career economy pass
+
+Career progression now uses four tuning targets rather than letting Knowledge alone dictate the economy:
+
+- **Days 1-7 - Broke Kid:** basic $50-$150 favors, simple paid work, and the first useful tool purchases.
+- **Days 8-16 - People Know You Wrench:** better referrals, better automotive shifts, meaningful reputation growth, and apartment-level independence.
+- **Days 17-27 - Backyard Mechanic:** advanced diagnostics, timing, suspension, clutch and other higher-liability work with substantially better pay.
+- **Day 28+ - Established Wrench:** the current late-game earning tier and foundation for a future player-owned shop.
+
+Harder side jobs now require the appropriate owned tools in addition to Knowledge and reputation. Side-job pay scales with career phase and a new **Trusted Work Rep** value weighted toward Workmanship and Friends/Family rather than Car Scene popularity. Harder successful referrals grant more reputation; failures still carry meaningful reputation and comeback penalties.
+
+Part-time work now favors jobs near the player's current ability instead of allowing entry-level shifts to dominate the board forever, and automotive wages rise modestly with progression.
+
+Project repairs now have real equipment gates. Brakes, suspension, timing, clutch, engine and performance work can require jack stands, torque wrench, socket set, breaker bar, spring compressor, compression tester, shop press or transmission jack. The Tools aisle includes the newly required equipment.
+
+Housing now uses Trusted Work Rep for progression so a player does not need to become locally famous at car meets just to move out.
+
+The Parts Store aisle selector was condensed to a three-column desktop layout so the category screen fits a 1080p display without scrolling.
