@@ -34,7 +34,9 @@ The script creates a Gradle wrapper if necessary, refreshes the web bundle, and 
 
 The output is:
 
-`app/build/outputs/apk/debug/app-debug.apk`
+`dist\WrenchLife-0.1.0-alpha-debug.apk`
+
+The Windows script auto-detects the normal Android Studio SDK location (`%LOCALAPPDATA%\Android\Sdk`), verifies API 36 is installed, and uses the already-committed web bundle when Node.js is unavailable.
 
 ## Play Store later
 
