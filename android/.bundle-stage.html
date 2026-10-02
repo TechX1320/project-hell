@@ -1945,18 +1945,358 @@ function createProjectFromListing(l){
 function projectState(){const cel=S.activeCodes&&S.activeCodes.length?' + CEL':'';if(!S.startable)return 'NO START'+cel;if(!S.driveable)return 'IMMOBILE'+cel;return 'STARTS / DRIVES'+cel}
 
 </script>
-<!--ANDROID_SCRIPT:src/core/reputation.js-->
-<!--ANDROID_SCRIPT:src/core/time.js-->
-<!--ANDROID_SCRIPT:src/core/career.js-->
-<!--ANDROID_SCRIPT:src/core/log.js-->
-<!--ANDROID_SCRIPT:src/core/ftue.js-->
-<!--ANDROID_SCRIPT:src/core/ui.js-->
-<!--ANDROID_SCRIPT:src/systems/garage.js-->
-<!--ANDROID_SCRIPT:src/systems/world.js-->
-<!--ANDROID_SCRIPT:src/systems/vehicle-market.js-->
-<!--ANDROID_SCRIPT:src/systems/parts-market.js-->
-<!--ANDROID_SCRIPT:src/systems/junkyard-generation.js-->
-<!--ANDROID_SCRIPT:src/systems/junkyard-network.js-->
+<script>
+/* src/core/reputation.js */
+function fatigueRisk(){if(S.awakeHours>=24||S.energy<20)return 'EXTREME';if(S.awakeHours>=20||S.energy<35)return 'VERY HIGH';if(S.awakeHours>=16||S.energy<50)return 'HIGH';if(S.awakeHours>=12||S.energy<70)return 'RISING';return 'LOW'}
+function fatiguePenalty(){let p=0;if(S.awakeHours>12)p+=(S.awakeHours-12)*2.3;if(S.energy<70)p+=(70-S.energy)*.22;return p}
+function syncReputation(){const r=S.reputationChannels;S.reputation=clamp(Math.round((r.friends+r.workmanship+r.scene)/3),0,100)}
+function gainRep(channel,n){S.reputationChannels[channel]=clamp((S.reputationChannels[channel]||0)+n,0,100);syncReputation()}
+function effectiveConfidence(make,category){return S.confidence*.45+(S.makeConfidence[make]||0)*.25+(S.skillConfidence[category]||0)*.30}
+function gainConfidence(make,category,n){S.confidence=clamp(S.confidence+Math.max(1,Math.round(n*.45)),0,100);S.makeConfidence[make]=clamp((S.makeConfidence[make]||0)+Math.max(1,Math.round(n*.7)),0,100);S.skillConfidence[category]=clamp((S.skillConfidence[category]||0)+Math.max(1,Math.round(n*.8)),0,100)}
+function loseConfidence(make,category,n){S.confidence=clamp(S.confidence-Math.max(1,Math.round(n*.45)),0,100);S.makeConfidence[make]=clamp((S.makeConfidence[make]||0)-Math.max(1,Math.round(n*.6)),0,100);S.skillConfidence[category]=clamp((S.skillConfidence[category]||0)-Math.max(1,Math.round(n*.7)),0,100)}
+function garageNoiseCheck(hours=1){if(S.location!=='parents')return;const m=minuteOfDay();if((m>=1380||m<360)&&Math.random()<Math.min(.65,.18+hours*.05)){const hit=rand(3,8);S.parentPatience=clamp(S.parentPatience-hit,0,100);addLog(`Late-night wrenching wakes the house. Parent patience -${hit}.`,'warn')}}
+
+</script>
+<script>
+/* src/core/time.js */
+function processDeferredForDay(d){const due=S.deferred.filter(x=>x.dueDay<=d),keep=S.deferred.filter(x=>x.dueDay>d);S.deferred=keep;for(const e of due){if(e.type==='sideComeback'){if(Math.random()<.72)S.choiceQueue.push(e);else addLog(`${e.owner} never calls back about the sketchy ${e.job.toLowerCase()}. Somehow, you got away with it.`,'warn')}}}
+function processWeekBoundary(newWeek){const prev=S.weekStart,loc=locations[S.location],summary={week:prev.week,cashDelta:S.cash-prev.cash,miles:Math.round(S.mileage-prev.mileage),progress:S.progress-prev.progress,knowledge:S.knowledge-prev.knowledge,reputation:S.reputation-prev.reputation,metrics:{...S.weekMetrics},rent:loc.rent,location:loc.name,parentNote:''};if(S.location==='parents'&&inventoryUsed()>inventoryCapacity()){const over=inventoryUsed()-inventoryCapacity(),hit=clamp(8+over*3,8,30);S.parentPatience=clamp(S.parentPatience-hit,0,100);summary.parentNote=`You are ${over} slot${over===1?'':'s'} over the garage limit. Parent patience drops ${hit}. ${S.parentPatience<30?'They are now actively pushing you to clean the garage out or find somewhere else to work.':''}`;}
+ if(loc.rent>0){S.cash-=loc.rent;addLog(`Weekly ${loc.name} rent: -$${loc.rent}.`,'warn')}
+ S.weeklyDue=summary;S.weeklyResearchUsed=0;S.researchWeek=newWeek;S.weekMetrics={jobsSuccess:0,jobsFail:0,projectSuccess:0,projectFail:0,research:0,shiftHours:0,shiftPay:0,codesScanned:0,carsBought:0,junkPulls:0,partsBought:0,partsSold:0,swapDeals:0,bodyJobs:0};S.weekStart={week:newWeek,cash:S.cash,mileage:S.mileage,progress:S.progress,knowledge:S.knowledge,reputation:S.reputation};}
+function refreshDailyResearch(d,silent=false){S.casualResearchUsed=0;S.targetedResearchToday=0;S.researchTopicCounts={};S.focusedResearchToday=0;S.focusedResearchDay=d;S.dailyResearchLimit=(d>=7&&Math.random()<.20)?2:1;const weeklyLeft=Math.max(0,S.weeklyResearchLimit-S.weeklyResearchUsed),today=Math.min(S.dailyResearchLimit,weeklyLeft);if(!silent&&today>0)addLog(`New day: ${today} random research rabbit hole${today===1?'':'s'} is available. Most learning should come from actually doing things, not reading forever.`,'day');if(!silent&&today===0)addLog('You have burned through enough casual research this week that more random reading is not teaching you much. Real problems can still create focused leads.','warn')}
+function passTime(hours,awake=true){const oldDay=dayNum(),oldWeek=weekNum();S.totalMin+=Math.round(hours*60);if(awake){S.awakeHours+=hours;S.energy=clamp(S.energy-hours*4,0,100)}const newDay=dayNum(),newWeek=weekNum();if(newWeek>oldWeek)processWeekBoundary(newWeek);if(newDay>oldDay){for(let d=oldDay+1;d<=newDay;d++){addLog(`MIDNIGHT - Day ${d} begins. You are still ${S.awakeHours>=16?'awake for some reason':'alive'}.`,'day');if(d===3&&S.ftueEnabled)addLog('The first-days guide is over. From here on, nobody is telling you what a sensible day looks like.','good');processDeferredForDay(d);refreshDailyResearch(d);if(d>S.lastJobRollDay){rollJobs();S.lastJobRollDay=d}refreshShiftJobs(true)}}}
+
+</script>
+<script>
+/* src/core/career.js */
+const careerStageDefs=[
+ {id:1,name:'BROKE KID',days:'Days 1-7',sidePay:1,shiftPay:1,targetReq:10},
+ {id:2,name:'PEOPLE KNOW YOU WRENCH',days:'Days 8-16',sidePay:1.16,shiftPay:1.08,targetReq:26},
+ {id:3,name:'BACKYARD MECHANIC',days:'Days 17-27',sidePay:1.32,shiftPay:1.16,targetReq:42},
+ {id:4,name:'ESTABLISHED WRENCH',days:'Day 28+',sidePay:1.46,shiftPay:1.23,targetReq:52}
+];
+function careerStageIndex(){const d=dayNum();return d<=7?1:d<=16?2:d<=27?3:4}
+function careerStage(){return careerStageDefs[careerStageIndex()-1]}
+function trustedWorkRep(){const r=S&&S.reputationChannels?S.reputationChannels:{friends:0,workmanship:0,scene:0};return clamp(Math.round(r.workmanship*.58+r.friends*.32+r.scene*.10),0,100)}
+function ownsCareerTool(id){if(id==='scanner')return !!sideJobScanner();if(id==='scanner2')return bestScannerTier()>=2;return !!(S&&S.inventory&&S.inventory[id])}
+function careerToolName(id){if(id==='scanner')return 'Basic LCD OBD-II Scanner or better';if(id==='scanner2')return 'Enhanced Scan Tool or better';const x=item(id);return x?x.name:id}
+function missingCareerTools(req){return (req||[]).filter(id=>!ownsCareerTool(id))}
+function careerToolList(req){return (req||[]).map(careerToolName).join(', ')}
+function sideJobEligible(j){
+ if((S.contacts[j.owner]??50)<=15)return false;
+ if((j.minDay||1)>dayNum())return false;
+ if((j.minKnowledge||0)>S.knowledge)return false;
+ if(j.minSkill&&((S.skillKnowledge[j.minSkill[0]]||0)<j.minSkill[1]))return false;
+ if((j.minWorkmanship||0)>(S.reputationChannels.workmanship||0))return false;
+ if(missingCareerTools(j.requiredTools).length)return false;
+ return true
+}
+function careerSideJobWeight(j){
+ const target=careerStage().targetReq,delta=Math.abs((j.req||0)-target);
+ let w=1+Math.max(0,8-delta/4);
+ if((j.minDay||1)>=8&&careerStageIndex()>=2)w+=2;
+ if((j.minDay||1)>=17&&careerStageIndex()>=3)w+=3;
+ return Math.max(1,w)
+}
+function rollCareerWeighted(pool,weightFn){
+ const total=pool.reduce((a,x)=>a+weightFn(x),0);let r=Math.random()*total;
+ for(let i=0;i<pool.length;i++){r-=weightFn(pool[i]);if(r<=0)return i}
+ return pool.length-1
+}
+function sideJobPayMultiplier(j){
+ const stage=careerStage();
+ const rep=1+Math.min(.34,trustedWorkRep()*.0055);
+ const floor=j.minKnowledge||Math.floor((j.req||0)*.55);
+ const knowledge=1+Math.min(.16,Math.max(0,S.knowledge-floor)*.005);
+ return stage.sidePay*rep*knowledge
+}
+function rollSideJobPay(j){const raw=rand(j.pay[0],j.pay[1])*sideJobPayMultiplier(j);return Math.max(5,Math.round(raw/5)*5)}
+function sideJobRepReward(j){const req=j.req||0;return {work:req>=50?5:req>=38?4:req>=26?3:req>=16?2:1,friends:req>=35?2:1}}
+function scanTipPay(){return Math.max(10,Math.round((8+careerStageIndex()*6+trustedWorkRep()*.35)/5)*5)}
+function partTimeEligibleCareer(j){
+ if((j.minDay||1)>dayNum())return false;
+ if((j.minKnowledge||0)>S.knowledge)return false;
+ if((j.minRep||0)>S.reputationChannels.scene)return false;
+ if(j.minSkill&&((S.skillKnowledge[j.minSkill[0]]||0)<j.minSkill[1]))return false;
+ if(missingCareerTools(j.requiredTools).length)return false;
+ return true
+}
+function partTimeJobWeight(j){
+ const k=j.minKnowledge||0,stage=careerStageIndex();
+ let w=1+Math.max(0,k/8);
+ if(stage>=2&&k>=18)w+=3;
+ if(stage>=3&&k>=30)w+=4;
+ if(stage===1&&k===0)w+=4;
+ return w
+}
+function partTimePayMultiplier(j){
+ const automotive=!!j.category||['CAR-ADJACENT','ENTRY SHOP','SHOP','SIDE HUSTLE','MECHANIC','PERFORMANCE','MOTORSPORT','TUNING'].includes(j.tier);
+ const rep=automotive?1+Math.min(.14,trustedWorkRep()*.002):1;
+ return careerStage().shiftPay*rep
+}
+function adjustedShiftPayRange(j){const m=partTimePayMultiplier(j);return [Math.round(j.pay[0]*m/5)*5,Math.round(j.pay[1]*m/5)*5]}
+function toolBlockedSideJobs(){return sideJobTemplates.filter(j=>(j.minDay||1)<=dayNum()&&(j.minKnowledge||0)<=S.knowledge&&(!j.minSkill||(S.skillKnowledge[j.minSkill[0]]||0)>=j.minSkill[1])&&(S.contacts[j.owner]??50)>15&&missingCareerTools(j.requiredTools).length)}
+
+</script>
+<script>
+/* src/core/log.js */
+function addLog(msg,type=''){if(!S)return;S.logs.push({msg,type});logPageFromEnd=0;renderLog()}
+function renderLog(){if(!S)return;const pageSize=12,total=S.logs.length,pages=Math.max(1,Math.ceil(total/pageSize));logPageFromEnd=clamp(logPageFromEnd,0,pages-1);const end=Math.max(0,total-logPageFromEnd*pageSize),start=Math.max(0,end-pageSize),slice=S.logs.slice(start,end);$('log').innerHTML=slice.map(x=>`<p class="${x.type==='good'?'goodtxt':x.type==='bad'?'badtxt':x.type==='warn'?'warntxt':x.type==='day'?'day':''}">&gt; ${x.msg}</p>`).join('');$('olderLogBtn').disabled=start===0;$('newerLogBtn').disabled=end===total;$('logPage').textContent=end===total?`Latest - ${total} entries`:`History ${pages-logPageFromEnd}/${pages} - ${total} entries`}
+
+</script>
+<script>
+/* src/core/ftue.js */
+function ftueStepData(){
+ const steps=[
+  {label:'1 / 5 - DIAGNOSE THE CAR',detail:'Start by looking at the car. Diagnosis creates clues; it does not magically replace parts.',button:'diagnoseBtn',feature:'diagnose'},
+  {label:'2 / 5 - LEARN SOMETHING',detail:'Follow the research lead created by your inspection. Useful information should come from something you actually observed.',button:'learnBtn',feature:'research'},
+  {label:'3 / 5 - DO AN OIL CHANGE',detail:'Use what you learned. The guide keeps you on the oil service and walks you through any supplies you are missing.',button:'workBtn',feature:'work'},
+  {label:'4 / 5 - EARN SOME MONEY',detail:'Take one job from the Part-Time Shift board. Project cars eat money, so wrenching cannot be your entire day.',button:'shiftBtn',feature:'shift'},
+  {label:'5 / 5 - SLEEP',detail:'Your first day ends with sleep. During the tutorial, bedtime is locked until 10:00 PM so time and fatigue make sense.',button:'sleepBtn',feature:'sleep'},
+ ];
+ return steps[clamp(S.ftueStep||0,0,steps.length-1)];
+}
+function ftueActive(){return !!(S&&S.ftueEnabled&&dayNum()===1&&(S.ftueStep||0)<5)}
+function ftueBedtimeReady(){return minuteOfDay()>=1320}
+function ftueFeatureAllowed(key){if(!ftueActive())return true;const g=ftueStepData();return key===g.feature&&(!(S.ftueStep===4)||ftueBedtimeReady())}
+function applyFtueGuards(){
+ const actionIds=['workBtn','diagnoseBtn','jobsBtn','storeBtn','learnBtn','driveBtn','shiftBtn','homeBtn','worldBtn','sleepBtn'];
+ const alwaysOn=['workBtn','jobsBtn','storeBtn','driveBtn','shiftBtn','homeBtn','worldBtn','sleepBtn'];
+ const statIds=['inventoryStat','toolsStat','knowledgeStat','confidenceStat','repStat'];
+ if(!ftueActive()){
+  alwaysOn.forEach(id=>{const el=$(id);if(el)el.disabled=false});
+  statIds.forEach(id=>{const el=$(id);if(el)el.classList.remove('ftue-stat-locked')});
+  return;
+ }
+ actionIds.forEach(id=>{const el=$(id);if(el)el.disabled=true});
+ statIds.forEach(id=>{const el=$(id);if(el)el.classList.add('ftue-stat-locked')});
+ const g=ftueStepData(),el=$(g.button);if(el&&(!(S.ftueStep===4)||ftueBedtimeReady()))el.disabled=false;
+}
+function updateFtueTarget(){
+ ['diagnoseBtn','learnBtn','workBtn','shiftBtn','sleepBtn','ftueWindBtn'].forEach(id=>{const el=$(id);if(el)el.classList.remove('ftue-target')});
+ if(!ftueActive())return;
+ const d=ftueStepData();
+ if(S.ftueStep===4&&!ftueBedtimeReady()){const w=$('ftueWindBtn');if(w)w.classList.add('ftue-target');return}
+ const el=$(d.button);if(el)el.classList.add('ftue-target');
+}
+function renderGuidePanel(){
+ const p=$('guidePanel');if(!p)return;
+ if(ftueActive()){
+  const g=ftueStepData();
+  if(S.ftueStep===4&&!ftueBedtimeReady()){
+   p.innerHTML=`<b>FIRST DAY // BEDTIME IS 10:00 PM</b><div class="small" style="margin-top:5px">You finished the required work, but it is only <b>${clockStr()}</b>. Use the rest of the evening for dinner, a shower, TV, texting friends, or staring at the car. Sleep unlocks at 10:00 PM.</div><button class="ftue-wind" id="ftueWindBtn" onclick="ftueWindDown()">WIND DOWN UNTIL 10:00 PM</button><div id="fatigueNote" class="small warning" style="margin-top:5px"></div>`;
+  }else p.innerHTML=`<b>FIRST DAY // ${g.label}</b><div class="small" style="margin-top:5px">${g.detail}</div><div class="small" style="margin-top:5px">Everything else is temporarily locked. You can skip the Day 1 guide from the tutorial screens.</div><div id="fatigueNote" class="small warning" style="margin-top:5px"></div>`;
+  return;
+ }
+ p.innerHTML=`<b>Everything has a downside now.</b> <span class="small">Diagnosis creates clues. Research can help or mislead you. Repairs cost time and supplies. Driving creates mileage and risk. Reputation, confidence, storage, money and sleep all matter.</span><div id="fatigueNote" class="small warning" style="margin-top:5px"></div>`;
+}
+function ftueWindDown(){
+ if(!ftueActive()||S.ftueStep!==4||ftueBedtimeReady())return;
+ const mins=1320-minuteOfDay(),hours=mins/60;S.totalMin+=mins;S.awakeHours+=hours;S.energy=clamp(S.energy-hours*1.5,0,100);
+ addLog('You kill the rest of the evening at home. Dinner, shower, a little TV, and several unnecessary looks at the project later, it is 10:00 PM.','day');render();
+}
+function ftueAdvance(completedStep,msg){
+ if(!S.ftueEnabled||(S.ftueStep||0)!==completedStep)return;
+ S.ftueStep=completedStep+1;S.ftueNudge=msg||'';
+}
+function showFtueNudge(){
+ if(!S.ftueNudge)return;const msg=S.ftueNudge;S.ftueNudge=null;
+ const done=(S.ftueStep||0)>=5,g=done?null:ftueStepData();
+ showModal(`<h2>${done?'Day 1 complete':'Good. Next step.'}</h2><div class="card"><p>${msg}</p>${done?`<p><b>You now know the basic loop:</b> diagnose -> learn -> wrench -> earn -> sleep.</p><p class="small">The guard rails are gone. First-use explanations still appear when you open unfamiliar systems, but Day 2 onward is yours.</p>`:`<p><b>${g.label}</b></p><p class="small">${g.detail}</p>`}</div><div class="modal-actions"><button class="primary" onclick="closeFtueNudge()">${done?'START DAY 2':'GOT IT'}</button>${done?'':`<button onclick="disableFtue()">SKIP DAY 1 GUIDE</button>`}</div>`)
+}
+function closeFtueNudge(){closeModal();render()}
+function showFtueDay(){
+ const d=dayNum();if(!S.ftueEnabled||d!==1||S.ftueShownDay===1)return;S.ftueShownDay=1;
+ showModal(`<h2>Day 1 - learn the basic loop</h2><div class="card"><p>You are 18, you just bought an old car, and the game is going to keep your first day intentionally simple.</p><p><b>Today only:</b> Diagnose -> Research -> Oil Change -> Part-Time Job -> Sleep.</p><p>Buttons you do not need are disabled. Each step explains what the system is teaching you. After you sleep, the guard rails disappear completely.</p><p class="small">This is not the correct routine forever. It is just enough structure to stop a first-time player from drowning in menus.</p></div><div class="modal-actions"><button class="primary" onclick="closeModal();render()">START DAY 1</button><button onclick="disableFtue()">SKIP DAY 1 GUIDE</button></div>`);
+}
+function disableFtue(){S.ftueEnabled=false;S.ftueNudge=null;closeModal();render()}
+const featureTips={
+ diagnose:{title:'Diagnosis is information, not a repair',body:'Inspections and symptom checks cost time. They can expose clues and create focused research leads, but they do not magically tell you which part to replace.'},
+ research:{title:'Research can be useful. It can also be garbage.',body:'Focused leads come from things you actually observed and are much more useful. Random rabbit holes can teach you something unrelated, waste time, or confidently teach you the wrong thing.'},
+ work:{title:'This is where parts actually become a car',body:'Mechanical service, body work, interior parts and upgrades all happen here. Jobs consume time and supplies. Routine service only appears when it is actually due, and harder jobs will ask whether you want the safer route or to risk it.'},
+ jobs:{title:'Friends and family remember what you do to their cars',body:'Side jobs are extra money and experience, but the car belongs to somebody you know. A bad failure can hurt trust, reputation, or leave you paying a real shop to fix your mistake.'},
+ store:{title:'Parts stores sell possibilities, not answers',body:'Supplies, tools, tires and upgrades live in aisles. Your garage has limited storage. Supplies bought specifically for a side job are used for that job instead of becoming permanent inventory.'},
+ drive:{title:'Driving is part of owning the project',body:'Trips add real mileage, advance service intervals, consume time, get the car dirty and can expose new problems. Longer drives carry more risk.'},
+ shift:{title:'The work board changes every day',body:'Only six part-time jobs appear at once. Early jobs are normal teenager work; automotive and higher-paying work enters the pool as your real knowledge and reputation improve.'},
+ home:{title:'Your parents do not own a warehouse',body:'Housing controls project-car space and inventory capacity. Hoard too much stuff or fill the driveway and your parents can start pushing you toward a more expensive place of your own.'},
+ world:{title:'Old-car ownership happens outside the parts store',body:'Marketplace, Pull-A-Part yards and swap meets are how you find projects and weird used parts. Availability, distance, transport space, condition and seller honesty all matter.'},
+ sleep:{title:'Sleep is a resource too',body:'You can sleep up to eight hours. Too little sleep, terrible bedtimes and random bad nights reduce recovery. Staying awake too long makes mechanical work substantially riskier.'},
+ inventory:{title:'Inventory means physical garage space',body:'Oil, filters, parts and used junk take actual slots. Stored used parts are not installed from here; put them on the car through Work on Project.'},
+ tools:{title:'Tools are individual equipment now',body:'Open this whenever you want to see what you actually own. Better hand tools, specialty tools and scanners improve what you can safely attempt; owning one generic "tool level" does not.'},
+ knowledge:{title:'Overall Knowledge is only the headline number',body:'Your real ability is split across makes and systems such as Maintenance, Engine, Brakes and Electrical. Experience also slows down as you become more knowledgeable.'},
+ confidence:{title:'Confidence is not the same as competence',body:'Confidence is also split by make and type of work. Too little can make you hesitant; too much confidence compared with your actual knowledge can push you into bad decisions.'},
+ reputation:{title:'Different people know you for different things',body:'Friends/family trust, workmanship and the local car scene are separate. A clean show car, a successful brake job and admitting a mistake can affect different kinds of reputation.'}
+};
+
+</script>
+<script>
+/* src/core/ui.js */
+function executeFeature(key){switch(key){case'diagnose':diagnose();break;case'research':openResearch();break;case'work':projectWork();break;case'jobs':openJobs();break;case'store':openStore();break;case'drive':openDrive();break;case'shift':openShiftJobs();break;case'home':openHome();break;case'world':openWorld();break;case'sleep':openSleep();break;case'inventory':openInventory();break;case'tools':openTools();break;case'knowledge':openKnowledge();break;case'confidence':openConfidence();break;case'reputation':openReputation();break}}
+function openFeature(key){
+ if(!ftueFeatureAllowed(key))return;
+ S.seenTips=S.seenTips||{};const tip=featureTips[key];
+ if(!tip||S.seenTips[key]){executeFeature(key);return}
+ S.seenTips[key]=true;showModal(`<h2>${tip.title}</h2><div class="card"><p>${tip.body}</p></div><div class="modal-actions"><button class="primary" onclick="continueFeature('${key}')">CONTINUE</button>${ftueActive()?'<button onclick="disableFtue()">SKIP DAY 1 GUIDE</button>':''}</div>`)
+}
+function continueFeature(key){closeModal();executeFeature(key)}
+function nextEventText(){refreshEvents();const e=activeEvents()[0];return e?`D${e.day} ${clockStr(e.startHour*60)}`:'NONE'}
+function render(){
+ if(!S)return;normalizeInstalledStorage();refreshEvents();if(dayNum()>1&&S.ftueEnabled&&(S.ftueStep||0)<5){S.ftueEnabled=false;S.ftueNudge=null;addLog('Day 1 is over. The tutorial guard rails shut off; from here, you are on your own.','day')}syncActiveProject();S.projectsOwned=S.projects?S.projects.length:1;recalcOverallKnowledge();renderGuidePanel();S.cash=Math.round(S.cash);['confidence','progress','reliability','energy'].forEach(k=>S[k]=clamp(Math.round(S[k]),0,100));Object.keys(S.reputationChannels).forEach(k=>S.reputationChannels[k]=clamp(Math.round(S.reputationChannels[k]),0,100));syncReputation();if(S.knowledge>=20)S.knownProjectSpecs=true;
+ $('carName').textContent=S.car.name;$('seedBtn').textContent='SEED '+(S.runSeed||currentRunSeed());$('day').textContent=dayNum();$('time').textContent=clockStr();$('cash').textContent=(S.cash<0?'-$':'$')+Math.abs(S.cash).toLocaleString();$('energy').textContent=S.energy+'%';$('knowledge').textContent=S.knowledge;$('confidence').textContent=S.confidence;$('rep').textContent=S.reputation;$('tools').textContent=toolSummary();$('inventoryCount').textContent=`${inventoryUsed()} / ${inventoryCapacity()} slots`;
+ $('progress').textContent=S.progress+'%';$('reliability').textContent=S.reliability+'%';$('mileage').textContent=Math.round(S.mileage).toLocaleString()+' mi';$('carState').textContent=projectState();$('carState').classList.toggle('statusbad',!S.startable);$('projectStateStat').classList.toggle('no-start-alert',!S.startable);$('projectStateStat').setAttribute('aria-label',S.startable?'Project state: '+projectState():'Project state: NO START. Click for diagnosis and recovery options.');$('jobsCount').textContent=`${S.jobs.length} waiting`;$('fatigueRisk').textContent=fatigueRisk();$('oilDue').textContent=S.mileage>=S.nextOilDue?'DUE':`${Math.round(S.nextOilDue-S.mileage)} mi`;$('nextEvent').textContent=nextEventText();
+ ['energy','knowledge','confidence','progress','reliability'].forEach(k=>$(k+'Bar').style.width=S[k]+'%');$('repBar').style.width=S.reputation+'%';$('clockTag').textContent=`Day ${dayNum()} - ${weekdayName()} - ${clockStr()}`;$('awakeTag').textContent=`Awake ${S.awakeHours.toFixed(1)}h`;$('fatigueNote').textContent=S.awakeHours>=16?`You have been awake ${S.awakeHours.toFixed(1)} hours. Mechanical judgment is getting ugly.`:(S.location==='parents'&&S.parentPatience<30?`Your parents are getting tired of the garage situation. Patience: ${S.parentPatience}%.`:'');
+ const researchRemaining=researchLeftToday(),canScan=S.activeCodes.length&&bestScannerTier()>0&&S.lastScanSignature!==codeSignature(),canInspect=S.lastBasicInspectDay!==dayNum(),canDiagnose=S.lastDiagnosedClue<S.projectClues;$('diagnoseBtn').disabled=!canInspect&&!canDiagnose&&!canScan;$('learnBtn').disabled=!S.learningLead&&researchRemaining<=0;$('learnBtn').textContent=S.learningLead?'RESEARCH CURRENT LEAD':researchRemaining>0?`RESEARCH / LEARN (${researchRemaining} RANDOM)`:'RESEARCH / LEARN';$('storeBtn').textContent=partsStoreOpenNow()?'STORE / PARTS':minuteOfDay()<PARTS_STORE_OPEN_MIN?'STORE / PARTS [CLOSED]':'STORE / PARTS [CLOSED]';$('storeBtn').classList.toggle('closed-action',!partsStoreOpenNow());
+ if(S.progress>=100&&S.bodyCondition>=72&&!S.completed){S.completed=true;addLog('THE CAR IS "DONE." Mechanically sorted enough and the exterior no longer looks abandoned. This is obviously still a lie.','good');addLog('Milestone reached: FIRST PROJECT COMPLETED. The game continues.','day')}
+ if(S.cash<=-750&&!S.gameOver){triggerBadEnding('broke');return}if(S.gameOver){syncActiveProject();renderLog();saveGame();if($('modal').classList.contains('hidden')&&S.badEnding)showBadEndingModal();return}syncActiveProject();renderLog();saveGame();
+ applyFtueGuards();updateFtueTarget();
+ if($('modal').classList.contains('hidden')){if(S.choiceQueue.length)showDeferredChoice();else if(S.weeklyDue)showWeeklySummary();else if(S.ftueNudge)showFtueNudge();else if(S.ftueEnabled&&dayNum()===1&&S.ftueShownDay!==1)showFtueDay();else maybeOfferGoodEnding()}
+}
+function effectiveKnowledge(make,category){return S.knowledge*.45+(S.makeKnowledge[make]||0)*.25+(S.skillKnowledge[category]||0)*.30}
+function riskLabel(req,make=S.car.make,category='Engine'){const e=effectiveKnowledge(make,category)+toolBonus()-fatiguePenalty(),g=e-req;if(g>=15)return 'VERY SAFE';if(g>=5)return 'PROBABLY FINE';if(g>=-5)return 'SKETCHY';if(g>=-15)return 'BAD IDEA';return 'ABSOLUTELY NOT'}
+function confidenceRead(req,make=S.car.make,category='Engine'){const e=effectiveKnowledge(make,category)+toolBonus(),c=effectiveConfidence(make,category);if(c>=req+20&&e<req-5)return 'Your confidence is outrunning your actual experience.';if(e>=req+10&&c<req-10)return 'You probably know enough, but you do not trust yourself yet.';if(e>=req)return `Your experience with ${make} / ${category.toLowerCase()} work says this is reasonable.`;return `You are weak on ${make} / ${category.toLowerCase()} experience for this job.`}
+function chanceFor(req,base=60,make=S.car.make,category='Engine'){const e=effectiveKnowledge(make,category),c=effectiveConfidence(make,category);let conf=Math.min(c,55)*.08;if(c-e>25)conf-=(c-e-25)*.16;return clamp(base+(e+toolBonus()-req)*2+conf-fatiguePenalty(),5,97)}
+function gainExperience(make,category,xp){const raw=Math.max(.15,xp),kept=raw*learningRetention(raw);S.knowledgeCore=addDiminishing(S.knowledgeCore??S.knowledge??0,kept*.30);S.makeKnowledge[make]=addDiminishing(S.makeKnowledge[make]||0,kept*.55);S.skillKnowledge[category]=addDiminishing(S.skillKnowledge[category]||0,kept*.75);recalcOverallKnowledge();return kept}
+function showModal(html,context=''){modalContext=context;$('modalBox').innerHTML=html;$('modal').classList.remove('hidden')}function closeModal(){modalContext='';$('modal').classList.add('hidden')}
+function invHas(needs){return Object.entries(needs||{}).every(([id,n])=>(S.inventory[id]||0)>=n)}function consume(needs){for(const [id,n] of Object.entries(needs||{}))S.inventory[id]=(S.inventory[id]||0)-n}
+function needNames(needs){const arr=Object.entries(needs||{}).map(([id,n])=>`${item(id)?.name||id} x${n}`);return arr.length?arr.join(', '):'No parts required'}function needCost(needs){return Object.entries(needs||{}).reduce((sum,[id,n])=>sum+(item(id)?.price||0)*n,0)}
+function maybeNonsense(chance=.24){if(Math.random()>chance)return;const e=nonsense[rand(0,nonsense.length-1)];e.effect(S);passTime(e.hours,true);addLog(`${e.msg} (+${e.hours}h)`,e.t)}
+function driveTrip(miles,hours,label,risk=true){if(!S.startable||!S.driveable)return false;S.mileage+=miles;S.cleanliness=clamp((S.cleanliness||55)-Math.max(1,Math.round(miles/18)),0,100);passTime(hours,true);if(risk&&Math.random()*100>Math.max(12,S.reliability)){if(maybeCatastrophicDrive('travel'))return false;S.reliability-=rand(1,4);S.projectClues++;addLog(`${label}: the project develops a new noise on the way. Fantastic.`,'warn')}return true}
+
+function openKnowledge(){const knownMakes=makes.filter(m=>(S.makeKnowledge[m]||0)>0).sort((a,b)=>S.makeKnowledge[b]-S.makeKnowledge[a]);const topSkills=categories.map(c=>S.skillKnowledge[c]||0).sort((a,b)=>b-a).slice(0,4),skillAvg=topSkills.reduce((a,b)=>a+b,0)/Math.max(1,topSkills.length),topMakes=makes.map(m=>S.makeKnowledge[m]||0).sort((a,b)=>b-a).slice(0,3),makeAvg=topMakes.reduce((a,b)=>a+b,0)/3;showModal(`<h2>Knowledge breakdown</h2><div class="card"><b>Overall Knowledge: ${S.knowledge}</b><p class="small">Overall is not a simple XP counter: 60% broad foundation + 30% your strongest four systems + 10% your strongest three makes. One Civic can make you good at Civics without instantly making you a master mechanic.</p><div class="kv"><div><span>FOUNDATION</span><b>${Math.round(S.knowledgeCore||0)}</b></div><div><span>TOP SYSTEM AVG</span><b>${Math.round(skillAvg)}</b></div><div><span>TOP MAKE AVG</span><b>${Math.round(makeAvg)}</b></div></div><p class="small">Learning slows naturally as a topic rises, and cramming has diminishing returns. After several meaningful learning sessions while awake, less of it sticks until you sleep. Hands-on work is still the best long-term path.</p></div><div class="knowledgegrid">${categories.map(c=>`<div><span class="small">${c.toUpperCase()}</span><b>${Math.round(S.skillKnowledge[c]||0)}</b></div>`).join('')}</div><h2 style="margin-top:9px">Make familiarity</h2><div class="knowledgegrid">${knownMakes.map(m=>`<div><span class="small">${m.toUpperCase()}</span><b>${Math.round(S.makeKnowledge[m])}</b></div>`).join('')||'<div>None</div>'}</div><div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`)}
+function openConfidence(){const knownMakes=makes.filter(m=>(S.makeConfidence[m]||0)>0).sort((a,b)=>S.makeConfidence[b]-S.makeConfidence[a]);showModal(`<h2>Confidence breakdown</h2><div class="card"><b>General confidence: ${S.confidence}</b><p class="small">Confidence is experience you trust yourself to use. Too much confidence compared with Knowledge can actually hurt difficult jobs.</p></div><div class="knowledgegrid">${categories.map(c=>`<div><span class="small">${c.toUpperCase()}</span><b>${S.skillConfidence[c]||0}</b></div>`).join('')}</div><h2 style="margin-top:9px">Make confidence</h2><div class="knowledgegrid">${knownMakes.map(m=>`<div><span class="small">${m.toUpperCase()}</span><b>${S.makeConfidence[m]}</b></div>`).join('')||'<div>None</div>'}</div><div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`)}
+function openReputation(){
+  const r=S.reputationChannels,contacts=Object.entries(S.contacts).sort((a,b)=>b[1]-a[1]).slice(0,6),stage=careerStage();
+  showModal(`<h2>Reputation / Career</h2><div class="card"><div class="jobhead"><b>${stage.name}</b><span class="risk">${stage.days}</span></div><p><b>Overall reputation: ${S.reputation}</b> - <b>Trusted work rep: ${trustedWorkRep()}</b></p><p class="small">Trusted work rep weights Workmanship and Friends/Family more heavily than Car Scene. It now affects referrals, pay and housing progression. Car-scene popularity still matters for events and performance circles.</p></div><div class="knowledgegrid"><div><span class="small">FRIENDS / FAMILY</span><b>${r.friends}</b></div><div><span class="small">WORKMANSHIP</span><b>${r.workmanship}</b></div><div><span class="small">CAR SCENE</span><b>${r.scene}</b></div></div><h2 style="margin-top:9px">People</h2><div class="knowledgegrid">${contacts.map(([n,v])=>`<div><span class="small">${n.toUpperCase()}</span><b>${v} - ${contactMood(n)}</b></div>`).join('')}</div><div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`);
+}
+function openTools(){
+  const tools=ownedToolItems(),scan=bestScanner(),blocked=toolBlockedSideJobs(),rows=tools.map(t=>`<div class="invrow"><div><b>${t.name}</b><div class="small">${t.desc}</div></div><div style="text-align:right">${t.jumpPack?'JUMP / TEST':t.toolBonus?`MECH +${t.toolBonus}<br>`:''}${t.bodyBonus?`BODY +${t.bodyBonus}<br>`:''}${t.obdTier?`OBD T${t.obdTier}`:''}</div></div>`).join('');
+  showModal(`<h2>Your Tools</h2><div class="card"><b>Starter hand-tool kit</b><p class="small">Cheap ratchet, random sockets, screwdrivers, pliers, adjustable wrench, hammer and inherited junk. Harder jobs now require specific equipment instead of letting a tiny tool bonus pretend everything is possible.</p><div class="kv"><div><span>PURCHASED TOOLS</span><b>${tools.length}</b></div><div><span>MECHANICAL BONUS</span><b>+${toolBonus()}</b></div><div><span>REFERRALS BLOCKED BY TOOLS</span><b>${blocked.length}</b></div></div>${scan?`<p><b>Best scanner:</b> ${scan.name} (Tier ${scan.obdTier})</p>${S.activeCodes.length?'<p class="badtxt"><b>CHECK ENGINE LIGHT: ON</b></p>':''}`:'<p class="small">No paid-work-capable OBD-II scanner yet.</p>'}${blocked.length?`<p class="warntxt">Next tool-gated referrals include: ${blocked.slice(0,3).map(j=>`${j.name} [${careerToolList(missingCareerTools(j.requiredTools))}]`).join(' / ')}</p>`:''}</div><div class="inventorygrid">${rows||'<div class="invrow">No upgraded tools yet.</div>'}</div><div class="modal-actions">${scan?`<button class="primary" onclick="scanFromTools()" ${(S.activeCodes.length||!S.startable)?'':'disabled'}>USE SCANNER${S.activeCodes.length?' - CEL ON':!S.startable?' - NO START':''}</button>`:''}<button onclick="closeModal()">CLOSE</button></div>`);
+}
+function scanFromTools(){if(!bestScanner())return;if(!S.activeCodes.length){showModal(`<h2>No CEL to scan</h2><div class="card"><p>The check-engine light is off and there are no known active codes right now.</p></div><div class="modal-actions"><button onclick="openTools()">BACK</button></div>`);return}scanProjectCodes('tools')}
+
+</script>
+<script>
+/* src/systems/garage.js */
+function openInventory(){const b=inventoryBreakdown();showModal(`<h2>Garage Inventory - ${b.total} / ${inventoryCapacity()} slots</h2><div class="card"><b>${locations[S.location].name}</b><p class="small">Installed parts use <b>zero</b> storage. Current usage: <b>${b.supplies}</b> supply slot${b.supplies===1?'':'s'} + <b>${b.tools}</b> tool slot${b.tools===1?'':'s'} + <b>${b.loose}</b> loose-part slot${b.loose===1?'':'s'}.</p><p class="small">If you install a radio, wheel, interior or other used part, it moves to INSTALLED and disappears from loose-part storage immediately.</p></div><div class="modal-actions three"><button onclick="showStockInventory(0)">SUPPLIES / TOOLS</button><button onclick="showUsedInventory(0)">USED / RARE PARTS (${S.usedParts.length})</button><button onclick="showInstalledInventory(0)">INSTALLED (${S.installedUpgrades.length})</button></div><div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`) }
+function showStockInventory(page=0){const owned=storeItems.filter(i=>(S.inventory[i.id]||0)>0),per=6,pages=Math.max(1,Math.ceil(owned.length/per));page=clamp(page,0,pages-1);const slice=owned.slice(page*per,page*per+per);showModal(`<h2>Supplies / Tools</h2><div class="inventorygrid">${slice.length?slice.map(i=>`<div class="invrow"><span>${i.name}<br><span class="small">${itemSlots(i.id)} slot${itemSlots(i.id)>1?'s':''} each</span></span><b>x${S.inventory[i.id]}</b></div>`).join(''):'<div class="small">Nothing here.</div>'}</div><div class="pager"><button onclick="showStockInventory(${page-1})" ${page===0?'disabled':''}>&lt;</button><span class="small">${page+1}/${pages}</span><button onclick="showStockInventory(${page+1})" ${page>=pages-1?'disabled':''}>&gt;</button></div><div class="modal-actions"><button onclick="openInventory()">BACK</button></div>`)}
+function usedPartFits(p){if(p.fitCarIds&&(p.fitCarIds.includes(S.car.id)||p.fitCarIds.some(id=>sameCarGeneration(cars.find(c=>c.id===id),S.car))))return true;if(p.fitGenerations&&p.fitGenerations.includes(carGenerationKey(S.car)))return true;if(p.fitMakes&&p.fitMakes.includes(S.car.make))return true;if(p.universal)return true;return false}
+function showUsedInventory(index=0){usedInvIndex=clamp(index,0,Math.max(0,S.usedParts.length-1));if(!S.usedParts.length){showModal(`<h2>Used / Rare Parts</h2><div class="card">Nothing but empty floor space. Go ruin that at the junkyard or Marketplace.</div><div class="modal-actions"><button onclick="openInventory()">BACK</button></div>`);return}const p=S.usedParts[usedInvIndex],fits=usedPartFits(p),fitText=fits?'<span class="fitok">FITS CURRENT PROJECT</span>':'<span class="fitmaybe">FITMENT NOT CONFIRMED FOR CURRENT PROJECT</span>';showModal(`<h2>Used / Rare Parts</h2><div class="card"><div class="jobhead"><b>${p.name}</b><span class="rare">${p.rarity||'USED'}</span></div><p>${p.desc||'Used part of questionable history.'}</p><div class="market-meta"><div><span>CONDITION</span><b>${p.condition}%</b></div><div><span>VALUE</span><b>~${p.value}</b></div><div><span>SPACE</span><b>${p.slots||1}</b></div><div><span>SOURCE</span><b>${p.source||'USED'}</b></div></div><p>${fitText}</p>${p.color?`<p class="small">Color: <b>${p.color}</b>${p.type==='body_panel'&&p.color!==S.paintColor?' - does not match your '+S.paintColor+' project.':''}</p>`:''}<p class="small">${fits?'This part can be installed directly from inventory or through Work on Project.':'Installation is unavailable until you have a compatible active project.'}</p></div><div class="pager"><button onclick="showUsedInventory(${usedInvIndex-1})" ${usedInvIndex===0?'disabled':''}>&lt;</button><span class="small">${usedInvIndex+1}/${S.usedParts.length}</span><button onclick="showUsedInventory(${usedInvIndex+1})" ${usedInvIndex>=S.usedParts.length-1?'disabled':''}>&gt;</button></div><div class="modal-actions three"><button class="primary" onclick="installUsedPart('${p.uid}')" ${fits?'':'disabled'}>INSTALL ON PROJECT</button><button onclick="sellUsedPart('${p.uid}','market')">SELL ONLINE</button><button onclick="openInventory()">BACK</button></div>`)}
+function installUsedPart(uid){const p=S.usedParts.find(x=>x.uid===uid);if(!p||!usedPartFits(p))return;if(p.type==='interior'){installInteriorPart(uid);return}if(p.type==='body_panel'){const req=18,chance=bodyChance(req);passTime(2.2,true);garageNoiseCheck(1.5);if(Math.random()*100<chance){const old=S.bodyPanels[p.panelKey]||45,newCond=clamp(Math.round(p.condition*.92),old,96);S.bodyPanels[p.panelKey]=newCond;S.bodyPanelColors[p.panelKey]=p.color||S.paintColor;recalcBody();S.usedParts=S.usedParts.filter(x=>x.uid!==uid);S.progress=clamp(S.progress+Math.max(1,Math.round((newCond-old)/8)),0,100);gainExperience(S.car.make,'Bodywork',3);gainConfidence(S.car.make,'Bodywork',2);addLog(`You replace the ${bodyPanelDefs.find(x=>x.id===p.panelKey)?.name||'panel'} with the used piece. Body condition is now ${S.bodyCondition}%. ${p.color&&p.color!==S.paintColor?'It is '+p.color+' on a '+S.paintColor+' car, which is extremely obvious.':'The color is at least in the right family.'}`,'good');closeModal();render()}else{p.condition=clamp(p.condition-rand(6,15),10,100);loseConfidence(S.car.make,'Bodywork',2);addLog(`The replacement panel fights you. Gaps look wrong, bolts do not line up, and you stop before making it worse.`,'warn');showUsedInventory(Math.min(usedInvIndex,S.usedParts.length-1));render()}return}const cat=p.type==='performance'?'Performance':p.type==='body'?'Bodywork':'Maintenance',req=p.type==='performance'?28:p.type==='body'?18:14,chance=p.type==='body'?bodyChance(req):chanceFor(req,68,S.car.make,cat);passTime(p.type==='wheels'?1.5:p.type==='interior'?1:p.type==='body'?1.6:1.2,true);garageNoiseCheck(1);if(Math.random()*100<chance){S.usedParts=S.usedParts.filter(x=>x.uid!==uid);S.installedUpgrades.push({...p});normalizeInstalledStorage();S.styleScore+=(p.style||0);S.performanceScore+=(p.perf||0);S.progress=clamp(S.progress+Math.max(0,Math.round((p.style+p.perf)/5)),0,100);gainConfidence(S.car.make,cat,2);gainExperience(S.car.make,cat,p.type==='body'?2:1);addLog(`Installed ${p.name}. The project now has ${S.styleScore} style points and ${S.performanceScore} performance points.`,'good');closeModal();render()}else{p.condition=clamp(p.condition-rand(5,18),10,100);loseConfidence(S.car.make,cat,2);addLog(`Installing ${p.name} goes badly. You stop before destroying it, but its condition drops to ${p.condition}%.`,'warn');showUsedInventory(Math.min(usedInvIndex,S.usedParts.length-1));render()}}
+function showInstalledInventory(index=0){installedIndex=clamp(index,0,Math.max(0,S.installedUpgrades.length-1));if(!S.installedUpgrades.length){showModal(`<h2>Installed Project Parts</h2><div class="card">Nothing special installed yet.</div><div class="modal-actions"><button onclick="openInventory()">BACK</button></div>`);return}const p=S.installedUpgrades[installedIndex];showModal(`<h2>Installed on ${S.car.name}</h2><div class="card"><b>${p.name}</b><p>${p.desc||''}</p><p class="small">Style +${p.style||0} / Performance +${p.perf||0} / Condition ${p.condition||100}%</p></div><div class="pager"><button onclick="showInstalledInventory(${installedIndex-1})" ${installedIndex===0?'disabled':''}>&lt;</button><span class="small">${installedIndex+1}/${S.installedUpgrades.length}</span><button onclick="showInstalledInventory(${installedIndex+1})" ${installedIndex>=S.installedUpgrades.length-1?'disabled':''}>&gt;</button></div><div class="modal-actions"><button onclick="openInventory()">BACK</button></div>`)}
+function locationUnlocked(id){if(id==='parents')return true;if(id==='apartment')return dayNum()>=8&&S.knowledge>=14&&trustedWorkRep()>=6;if(id==='house')return dayNum()>=17&&S.knowledge>=30&&trustedWorkRep()>=18;return false}
+function openHome(){syncActiveProject();const l=locations[S.location],cards=Object.entries(locations).map(([id,x])=>{const unlocked=locationUnlocked(id),current=S.location===id,req=id==='apartment'?'Target: Day 8+ / Knowledge 14 / Trusted Rep 6':id==='house'?'Target: Day 17+ / Knowledge 30 / Trusted Rep 18':'No weekly rent';return `<div class="card"><div class="jobhead"><b>${x.name}</b><span class="risk">${current?'CURRENT':unlocked?'AVAILABLE':'LOCKED'}</span></div><div class="kv"><div><span>STORAGE</span><b>${x.capacity}</b></div><div><span>PROJECTS</span><b>${x.bays}${id==='parents'?'+1 risky':''}</b></div><div><span>WEEKLY</span><b>$${x.rent}</b></div></div><p class="small">${x.desc} ${req}</p>${!current?`<button onclick="moveHome('${id}')" ${(!unlocked||S.cash<x.moveCost)?'disabled':''}>MOVE HERE ($${x.moveCost})</button>`:''}</div>`}).join('');showModal(`<h2>Home / Garage</h2><div class="card"><b>${S.projects.length} project${S.projects.length===1?'':'s'}</b> &nbsp; <b>${inventoryUsed()} / ${inventoryCapacity()} storage slots</b>${S.location==='parents'?`<p>Parent patience: <b>${S.parentPatience}%</b>. A second car means parking it outside and testing that patience.</p>`:''}</div><div class="modal-actions three"><button class="primary" onclick="openProjects()">MY PROJECTS</button><button onclick="openWorld()">MARKET / YARD</button><button onclick="openInventory()">INVENTORY</button></div>${cards}<div class="modal-actions"><button onclick="closeModal()">CLOSE</button></div>`)}
+function openProjects(){syncActiveProject();const rows=S.projects.map(p=>{const c=cars.find(x=>x.id===p.carId),active=p.uid===S.activeProjectUid;return `<div class="projectline ${active?'active':''}"><div class="jobhead"><b>${c.name}</b><span class="risk">${active?'ACTIVE PROJECT':p.completed?'COMPLETED':'PARKED'}</span></div><div class="market-meta"><div><span>BUILD</span><b>${p.progress}%</b></div><div><span>REL</span><b>${p.reliability}%</b></div><div><span>MILES</span><b>${Math.round(p.mileage).toLocaleString()}</b></div><div><span>BODY</span><b>${p.bodyCondition||50}%</b></div></div><div class="mini-actions">${active?'':`<button onclick="switchProject('${p.uid}')">MAKE ACTIVE</button>`}<button onclick="offerProjectSale('${p.uid}')">SELL PROJECT</button></div></div>`}).join('');showModal(`<h2>My Projects</h2><div class="card"><b>${S.projects.length} / ${projectCapacity()} current parking capacity</b><p class="small">Only the active project gets wrenching, driving and event actions. Switching cars costs about 15 minutes.</p></div>${rows}<div class="modal-actions"><button onclick="openHome()">BACK</button></div>`)}
+function offerProjectSale(uid){const p=S.projects.find(x=>x.uid===uid);if(!p)return;if(S.projects.length<=1){showModal(`<h2>Sell Project</h2><div class="card">You need at least one car in this prototype. Buy another mistake first.</div><div class="modal-actions"><button onclick="openProjects()">BACK</button></div>`);return}const c=cars.find(x=>x.id===p.carId),base=p.purchasePrice||c.price,value=Math.round(base*(.55+p.progress/180+p.reliability/350)+(p.styleScore||0)*8+(p.performanceScore||0)*12+Math.max(0,(p.bodyCondition||50)-40)*9);showModal(`<h2>List ${c.name}?</h2><div class="card"><p>Marketplace messages suggest you could probably get around <b>$${value}</b> without waiting forever.</p><p class="small">This prototype sells instantly. A later version can absolutely include lowballers, trades and people asking if it is still available.</p></div><div class="modal-actions"><button class="danger" onclick="sellProject('${uid}',${value})">SELL FOR $${value}</button><button onclick="openProjects()">KEEP IT</button></div>`)}
+function sellProject(uid,value){const wasActive=uid===S.activeProjectUid;S.cash+=value;S.projects=S.projects.filter(x=>x.uid!==uid);if(wasActive){const p=S.projects[0];applyProject(p)}S.projectsOwned=S.projects.length;addLog(`You sell a project for $${value}. This is either responsible or funding the next terrible idea.`,'good');openProjects();render()}
+function moveHome(id){const l=locations[id];if(!locationUnlocked(id)||S.cash<l.moveCost)return;S.cash-=l.moveCost;passTime(id==='house'?8:4,true);S.location=id;closeModal();addLog(`You move into ${l.name}. Storage expands to ${l.capacity} slots. Weekly rent is $${l.rent}.`,'day');render()}
+
+</script>
+<script>
+/* src/systems/world.js */
+function weekdayForDay(d){return ['MON','TUE','WED','THU','FRI','SAT','SUN'][(d-1)%7]}function weekdayName(){return weekdayForDay(dayNum())}
+function openWorld(){showModal(`<h2>Local Car World</h2><div class="card"><b>${weekdayName()} - Day ${dayNum()}</b><p class="small">Cars, used parts, junkyard donors and swap-meet junk all rotate over time. None of it is guaranteed to be smart.</p></div><div class="hubgrid"><div class="hubcard"><b>Car Marketplace</b><p class="small">Buy another project. Sellers can lie, forget things, or genuinely not know what is wrong.</p><button onclick="openCarMarket(0)">BROWSE CARS</button></div><div class="hubcard"><b>Parts Marketplace</b><p class="small">A huge rotating pool of used OEM, interior, body, wheel and performance parts. Fitment is your problem.</p><button onclick="openPartsMarket(0)">BROWSE PARTS</button></div><div class="hubcard"><b>Pull-A-Part Finder</b><p class="small">Check which yards list your car, then physically go there to see donor condition and what parts are actually left.</p><button onclick="openJunkyardFinder()">CHECK YARDS</button></div><div class="hubcard"><b>Swap Meet</b><p class="small">Open Wednesday and Saturday. Barter, trade, sell, or hunt rare OEM and period aftermarket parts.</p><button onclick="openSwapMeet()">CHECK SWAP MEET</button></div></div><div class="modal-actions three"><button onclick="openProjects()">MY PROJECTS</button><button onclick="openSellParts('market',0)">SELL PARTS</button><button onclick="closeModal()">CLOSE</button></div>`)}
+
+</script>
+<script>
+/* src/systems/vehicle-market.js */
+function ensureCarMarket(){if(S.marketDay===dayNum()&&S.marketListings.length)return;S.marketDay=dayNum();const pool=cars.filter(c=>!c.starter||Math.random()<.55),list=[];for(let i=0;i<5;i++){const c=pool[rand(0,pool.length-1)],price=Math.max(700,Math.round(c.price*(.72+Math.random()*.65)/50)*50),mileage=Math.max(72000,Math.round(c.mileage+rand(-36000,42000))),issue=Math.random()<.48?hiddenIssues[rand(0,hiddenIssues.length-1)]:null,sev=issue?rand(4,16):0;const bodyCondition=clamp(c.progress+rand(0,38),22,78);list.push({id:`mc-${dayNum()}-${i}`,carId:c.id,price,mileage,reliability:clamp(c.reliability+rand(-12,10)-sev,18,75),progress:clamp(c.progress+rand(-8,8),12,55),bodyCondition,bodyPanels:buildBodyPanels(bodyCondition),paintColor:carColors[rand(0,carColors.length-1)],seller:marketSellerLines[rand(0,marketSellerLines.length-1)],hiddenIssue:issue,inspected:false,reveal:'',sold:false})}S.marketListings=list}
+function conditionWord(l){const n=l.reliability;return n>=58?'decent driver':n>=45?'used but running':n>=32?'rough': 'very rough'}
+function openCarMarket(index=0){ensureCarMarket();marketIndex=clamp(index,0,S.marketListings.length-1);const l=S.marketListings[marketIndex],c=cars.find(x=>x.id===l.carId),room=S.projects.length<projectCapacity(),knowledgeHint=l.inspected?`<p class="${l.reveal.includes('You spot')?'warntxt':'small'}">${l.reveal}</p>`:'<p class="small">You have only the seller photos and description. Inspecting costs time but can reveal something.</p>';showModal(`<h2>Car Marketplace</h2><div class="card"><div class="jobhead"><b>${c.name}</b><span class="risk">$${l.price.toLocaleString()}</span></div><p>"${l.seller}"</p><div class="market-meta"><div><span>ODOMETER</span><b>${l.mileage.toLocaleString()}</b></div><div><span>SELLER CLAIM</span><b>${conditionWord({...l,reliability:l.reliability+(l.hiddenIssue?8:0)})}</b></div><div><span>PROJECT SPACE</span><b>${S.projects.length}/${projectCapacity()}</b></div><div><span>BODY / COLOR</span><b>${l.inspected?l.bodyCondition+'% '+l.paintColor:l.paintColor}</b></div></div>${knowledgeHint}</div><div class="pager"><button onclick="openCarMarket(${marketIndex-1})" ${marketIndex===0?'disabled':''}>&lt;</button><span class="small">${marketIndex+1}/${S.marketListings.length} - listings refresh tomorrow</span><button onclick="openCarMarket(${marketIndex+1})" ${marketIndex>=S.marketListings.length-1?'disabled':''}>&gt;</button></div><div class="modal-actions three"><button onclick="inspectMarketCar('${l.id}')" ${l.inspected?'disabled':''}>INSPECT CAR</button><button class="primary" onclick="buyMarketCar('${l.id}')" ${(S.cash<l.price||!room||l.sold)?'disabled':''}>BUY PROJECT</button><button onclick="openWorld()">BACK</button></div>${!room?'<p class="warntxt">No parking space. Move somewhere bigger or sell a project.</p>':''}`)}
+function inspectMarketCar(id){const l=S.marketListings.find(x=>x.id===id);if(!l||l.inspected)return;const c=cars.find(x=>x.id===l.carId);if(S.startable&&S.driveable)driveTrip(rand(8,18),.65,'Marketplace inspection trip',true);else{passTime(1,true);S.cash-=8;addLog('You get a ride to inspect a Marketplace car. -$8.','warn')}l.inspected=true;const skill=effectiveKnowledge(c.make,'Maintenance')+toolBonus();if(l.hiddenIssue&&Math.random()*100<clamp(35+skill,35,92))l.reveal=`You spot evidence of ${l.hiddenIssue}. The seller did not exactly lead with that.`;else if(l.hiddenIssue)l.reveal='Nothing obvious jumps out during your driveway inspection. That does not mean nothing is wrong.';else l.reveal='It actually looks about as honest as an old Marketplace car can look.';gainExperience(c.make,'Maintenance',1);gainExperience(c.make,'Bodywork',1);l.reveal+=` Body looks roughly ${l.bodyCondition}% overall; worst panel is ${panelIssue(Math.min(...Object.values(l.bodyPanels)))}.`;addLog(`You inspect a ${c.name} listing instead of buying completely blind.`,'good');openCarMarket(S.marketListings.indexOf(l));render()}
+function buyMarketCar(id){const l=S.marketListings.find(x=>x.id===id);if(!l||l.sold||S.cash<l.price||S.projects.length>=projectCapacity())return;const c=cars.find(x=>x.id===l.carId);S.cash-=l.price;passTime(1,true);const p=createProjectFromListing(l);S.projects.push(p);S.projectsOwned=S.projects.length;l.sold=true;S.weekMetrics.carsBought++;if(S.location==='parents'&&S.projects.length>locations.parents.bays){const hit=rand(8,16);S.parentPatience=clamp(S.parentPatience-hit,0,100);addLog(`You bring home ANOTHER car and park it outside. Parent patience -${hit}.`,'warn')}addLog(`You buy the ${c.name} for $${l.price.toLocaleString()}. You now own ${S.projects.length} projects.`,'day');if(l.hiddenIssue)addLog(`The new project has at least one problem waiting to be discovered. Of course it does.`,'warn');showModal(`<h2>Another bad decision acquired</h2><div class="card"><b>${c.name}</b><p>You can switch to it now or leave it parked and keep working on ${S.car.name}.</p></div><div class="modal-actions"><button class="primary" onclick="switchProject('${p.uid}')">MAKE IT ACTIVE</button><button onclick="openCarMarket(${marketIndex})">KEEP CURRENT ACTIVE</button></div>`);render()}
+
+</script>
+<script>
+/* src/systems/parts-market.js */
+function cloneRarePart(t,source,condition=rand(45,92),price=t.base){return {uid:`u-${Date.now()}-${Math.random()}`,templateId:t.id,name:t.name,type:t.type,interiorSlot:t.interiorSlot||null,fitCarIds:t.fitCarIds?([...t.fitCarIds]):null,fitGenerations:t.fitGenerations?([...t.fitGenerations]):null,fitMakes:t.fitMakes?([...t.fitMakes]):null,universal:t.universal||false,slots:t.slots||1,style:t.style||0,perf:t.perf||0,value:Math.max(15,Math.round(price)),condition,rarity:t.rarity||'USED',desc:t.desc||'',source}}
+function ensurePartsMarket(){if(S.partsMarketDay===dayNum()&&S.partsMarketListings.length)return;S.partsMarketDay=dayNum();S.partsMarketListings=[];const pool=[...marketplacePartTemplates],names=new Set();while(S.partsMarketListings.length<12&&pool.length){const pick=rand(0,pool.length-1),t=pool.splice(pick,1)[0],key=t.name.toLowerCase();if(names.has(key))continue;names.add(key);const condition=rand(32,96),rarityMult=t.rarity==='RARE'?1.18:t.rarity==='UNCOMMON'?1.04:.92,price=Math.max(15,Math.round(t.base*(condition/100)*rarityMult*(.68+Math.random()*.58)/5)*5);S.partsMarketListings.push({id:`pm-${dayNum()}-${S.partsMarketListings.length}-${Math.random()}`,part:cloneRarePart(t,'Marketplace',condition,Math.round(t.base*condition/100)),price,seller:marketSellerLines[rand(0,marketSellerLines.length-1)],sold:false,offerUsed:false})}}
+function listingFitText(p){if(usedPartFits(p))return '<span class="fitok">Looks compatible with the active project.</span>';const maybe=(p.fitMakes||[]).includes(S.car.make);return maybe?'<span class="fitmaybe">Same make, but fitment is not guaranteed.</span>':'<span class="small">No obvious fitment for the active project.</span>'}
+function openPartsMarket(index=0){ensurePartsMarket();partsMarketIndex=clamp(index,0,S.partsMarketListings.length-1);const l=S.partsMarketListings[partsMarketIndex],p=l.part;showModal(`<h2>Parts Marketplace</h2><div class="card"><div class="jobhead"><b>${p.name}</b><span class="rare">${p.rarity}</span></div><p>"${l.seller}"</p><p>${p.desc}</p><div class="market-meta"><div><span>ASKING</span><b>$${l.price}</b></div><div><span>CONDITION</span><b>${p.condition}%</b></div><div><span>SPACE</span><b>${p.slots}</b></div><div><span>SOURCE</span><b>PRIVATE SELLER</b></div></div><p>${listingFitText(p)}</p>${l.offerUsed?'<p class="small warntxt">You already tried negotiating with this seller today.</p>':''}</div><div class="pager"><button onclick="openPartsMarket(${partsMarketIndex-1})" ${partsMarketIndex===0?'disabled':''}>&lt;</button><span class="small">${partsMarketIndex+1}/${S.partsMarketListings.length}</span><button onclick="openPartsMarket(${partsMarketIndex+1})" ${partsMarketIndex>=S.partsMarketListings.length-1?'disabled':''}>&gt;</button></div><div class="modal-actions three"><button onclick="openPartOffer('${l.id}')" ${(l.sold||l.offerUsed)?'disabled':''}>MESSAGE / MAKE OFFER</button><button class="primary" onclick="buyUsedListing('${l.id}')" ${(l.sold||S.cash<l.price||inventoryUsed()+p.slots>inventoryCapacity())?'disabled':''}>BUY AT $${l.price}</button><button onclick="openSellParts('market',0)">SELL YOUR PARTS</button></div><div class="modal-actions"><button onclick="openWorld()">BACK</button></div>`)}
+function openPartOffer(id){const l=S.partsMarketListings.find(x=>x.id===id);if(!l||l.sold)return;const p=l.part;showModal(`<h2>Message seller - ${p.name}</h2><div class="card"><p>Asking price: <b>$${l.price}</b>.</p><p class="small">Lower offers are less likely to work. Car-scene reputation helps a little because people recognize you as less likely to waste their time.</p></div><div class="modal-actions three"><button onclick="makePartOffer('${id}',.9)">OFFER $${Math.round(l.price*.9)}</button><button onclick="makePartOffer('${id}',.8)">OFFER $${Math.round(l.price*.8)}</button><button onclick="makePartOffer('${id}',.7)">OFFER $${Math.round(l.price*.7)}</button></div><div class="modal-actions"><button onclick="openPartsMarket(partsMarketIndex)">BACK</button></div>`)}
+function makePartOffer(id,pct){const l=S.partsMarketListings.find(x=>x.id===id);if(!l||l.sold||l.offerUsed)return;l.offerUsed=true;passTime(.15,true);const offer=Math.max(5,Math.round(l.price*pct/5)*5),rep=S.reputationChannels.scene||0,base=pct>=.9?72:pct>=.8?44:20,chance=clamp(base+rep*.7,8,94);if(Math.random()*100<chance){showModal(`<h2>Offer accepted</h2><div class="card"><p>The seller replies: <b>"Yeah, $${offer} works if you can come get it."</b></p><p class="small">You saved ${l.price-offer} by actually negotiating.</p>${inventoryUsed()+l.part.slots>inventoryCapacity()?'<p class="warntxt"><b>Garage storage is full.</b> This part needs '+l.part.slots+' slot'+(l.part.slots===1?'':'s')+'. '+(S.location==='parents'?'You can stash it anyway, but your parents will care.':'Make room before pickup.')+'</p>':''}</div><div class="modal-actions"><button class="primary" onclick="completePartsPurchase('${id}',${offer},true)" ${S.cash<offer||(inventoryUsed()+l.part.slots>inventoryCapacity()&&S.location!=='parents')?'disabled':''}>${inventoryUsed()+l.part.slots>inventoryCapacity()&&S.location==='parents'?'GO GET IT + STASH ANYWAY':'GO GET IT'} - ${offer}</button><button onclick="openPartsMarket(partsMarketIndex)">PASS</button></div>`)}else{addLog(`Marketplace seller declines your $${offer} offer on ${l.part.name}.`,'warn');showModal(`<h2>Offer declined</h2><div class="card"><p>The seller is not taking <b>$${offer}</b>.</p><p class="small">You can still pay the full $${l.price} asking price if it is worth it to you.</p></div><div class="modal-actions"><button class="primary" onclick="buyUsedListing('${id}')" ${S.cash<l.price?'disabled':''}>PAY $${l.price}</button><button onclick="openPartsMarket(partsMarketIndex)">MOVE ON</button></div>`)}}
+function completePartsPurchase(id,price,negotiated=false){const l=S.partsMarketListings.find(x=>x.id===id);if(!l||l.sold||S.cash<price)return;const over=inventoryUsed()+l.part.slots>inventoryCapacity();if(over&&S.location!=='parents')return;passTime(.75,true);if(Math.random()<.10){addLog(`Marketplace seller for ${l.part.name} stops replying after you leave. You waste 45 minutes.`,'warn');openPartsMarket(partsMarketIndex);render();return}if(S.startable&&S.driveable)driveTrip(rand(5,16),.4,'Marketplace parts pickup',true);else S.cash-=6;S.cash-=price;S.usedParts.push(l.part);l.sold=true;if(over&&S.location==='parents'){const hit=rand(4,9);S.parentPatience=clamp(S.parentPatience-hit,0,100);addLog(`You cram ${l.part.name} into an already-full garage. Parent patience -${hit}.`,'warn')}S.weekMetrics.partsBought++;addLog(`You bring home ${l.part.name} for $${price}${negotiated?' after negotiating':''}. It occupies ${l.part.slots} garage slot${l.part.slots===1?'':'s'} until you install or sell it.`,'good');openPartsMarket(partsMarketIndex);render()}
+function buyUsedListing(id){const l=S.partsMarketListings.find(x=>x.id===id);if(!l)return;completePartsPurchase(id,l.price,false)}
+
+</script>
+<script>
+/* src/systems/junkyard-generation.js */
+function yardAvailabilityPct(days,rarity='COMMON'){
+ let base=days<=3?98:days<=7?94:days<=14?86:days<=20?76:days<=27?58:35;
+ const mod=rarity==='RARE'?-14:rarity==='UNCOMMON'?-6:0;
+ return clamp(base+mod,12,98)
+}
+function yardFreshness(days){const p=yardAvailabilityPct(days,'COMMON');return p>=92?'VERY FRESH':p>=82?'FRESH':p>=68?'GOOD ODDS':p>=48?'PICKED OVER':p>=30?'LOW ODDS':'LONG SHOT'}
+function yardAttritionChance(days,rarity='COMMON',delta=1){
+ let base=days<8?.003:days<15?.008:days<21?.015:days<28?.04:.07;
+ const mult=rarity==='RARE'?1.55:rarity==='UNCOMMON'?1.2:1;
+ return clamp(base*mult*Math.max(1,delta),.002,.22)
+}
+function carGenerationKey(c){return c?.generation||c?.id||''}
+function sameCarGeneration(a,b){return !!a&&!!b&&carGenerationKey(a)===carGenerationKey(b)}
+function yardDonorName(d,c){const y=d?.displayYear||c?.year||Number(String(c?.name||'').slice(0,4))||1996;return `${y} ${String(c?.name||'Unknown car').replace(/^\d{4}\s+/,'')}`}
+function yardDonorMatchesCar(d,target){const donor=cars.find(x=>x.id===d?.carId);return sameCarGeneration(donor,target)}
+function yardStockTarget(y){return rand(y.stockMin||7,y.stockMax||10)}
+function yardPartName(p,c){if(p.kind==='rare')return p.template.name;const k=p.data;if(k.type==='body_panel'){const d=bodyPanelDefs.find(x=>x.id===p.panelKey);return `${d?d.name:'Body panel'} - ${p.panelColor}`}return k.name}
+function yardPartRarity(p){return p.kind==='rare'?(p.template.rarity||'UNCOMMON'):(p.data?.rarity||'COMMON')}
+function yardPartKey(p){if(p.data?.type==='body_panel')return `panel:${p.panelKey}`;const name=p.kind==='rare'?p.template.name:p.data?.name;return `name:${String(name||'part').toLowerCase()}`}
+function yardTemplateFits(t,c){return t.universal||(t.fitCarIds||[]).includes(c.id)||(t.fitCarIds||[]).some(id=>sameCarGeneration(cars.find(x=>x.id===id),c))||(t.fitGenerations||[]).includes(carGenerationKey(c))||(t.fitMakes||[]).includes(c.make)}
+function weightedJunkRarity(gemBoost=false){const r=Math.random();if(gemBoost)return r<.22?'RARE':r<.62?'UNCOMMON':'COMMON';return r<.055?'RARE':r<.265?'UNCOMMON':'COMMON'}
+function makeYardPart(c,color,days,slot,gemBoost=false,exclude=new Set()){
+ const marketGemChance=gemBoost?.30:.055;
+ const rareChoices=marketplacePartTemplates.filter(x=>x.rarity!=='COMMON'&&yardTemplateFits(x,c)&&!exclude.has(`name:${x.name.toLowerCase()}`));
+ if(rareChoices.length&&Math.random()<marketGemChance){const rt=rareChoices[rand(0,rareChoices.length-1)];return {kind:'rare',template:rt,attempts:0,present:Math.random()*100<yardAvailabilityPct(days,rt.rarity||'UNCOMMON'),cost:Math.max(18,Math.round(rt.base*(gemBoost?.18:.24))),hours:Math.max(1,Math.min(3,rt.slots||1)),req:gemBoost?20:18,slots:rt.slots||1}}
+ let rarity=weightedJunkRarity(gemBoost),pool=junkPullKinds.filter(x=>x.rarity===rarity&&(x.type==='body_panel'||!exclude.has(`name:${x.name.toLowerCase()}`)));
+ if(!pool.length)pool=junkPullKinds.filter(x=>x.type==='body_panel'||!exclude.has(`name:${x.name.toLowerCase()}`));
+ const k=pool[rand(0,pool.length-1)],panelKey=k.type==='body_panel'?bodyPanelDefs.filter(x=>!exclude.has(`panel:${x.id}`))[rand(0,Math.max(0,bodyPanelDefs.filter(x=>!exclude.has(`panel:${x.id}`)).length-1))]?.id:null,panelColor=panelKey?(Math.random()<.84?color:carColors.filter(x=>x!==color)[rand(0,carColors.length-2)]):null,slots=panelKey?bodyPanelTransportSlots(panelKey):k.slots;
+ return {kind:'junk',data:k,attempts:0,present:Math.random()*100<yardAvailabilityPct(days,k.rarity||'COMMON'),cost:rand(k.cost[0],k.cost[1]),hours:k.hours,req:k.req,panelKey,panelColor,slots}
+}
+function makeYardDonor(yardId,age=rand(0,16),forcedCarId=null){
+ const forced=cars.find(x=>x.id===forcedCarId),pool=forced?cars.filter(x=>sameCarGeneration(x,forced)):cars,c=pool[rand(0,pool.length-1)],displayYear=rand(c.genStart||c.year||1996,c.genEnd||c.year||1996),color=carColors[rand(0,carColors.length-1)],parts=[],hiddenParts=[],seen=new Set();
+ const addUnique=(target,slot,gem)=>{let p=null;for(let tries=0;tries<30;tries++){p=makeYardPart(c,color,age,slot,gem,seen);const key=yardPartKey(p);if(!seen.has(key)){seen.add(key);target.push(p);return}}if(p)target.push(p)};
+ for(let j=0;j<4;j++)addUnique(parts,j,false);
+ for(let j=4;j<8;j++)addUnique(hiddenParts,j,true);
+ return {id:`yd-${yardId}-${Date.now()}-${Math.random()}`,carId:c.id,displayYear,color,daysOnYard:age,studied:false,deepSearched:false,desc:['rear-end hit','rusted underneath','engine bay picked over','front-end wreck','looks weirdly complete','insurance total with surprisingly straight sides'][rand(0,5)],parts,hiddenParts}
+}
+
+</script>
+<script>
+/* src/systems/junkyard-network.js */
+function yardAlertMatchesDonor(alertCarId,d){
+ const target=cars.find(x=>x.id===alertCarId),donor=cars.find(x=>x.id===d.carId);
+ return sameCarGeneration(target,donor)
+}
+function checkYardAlerts(){S.yardAlertCarIds=S.yardAlertCarIds||[];S.yardAlertSeen=S.yardAlertSeen||[];const seen=new Set(S.yardAlertSeen),hits=[];for(const y of yardLocations)for(const d of (S.yardsData[y.id]||[]))if(S.yardAlertCarIds.some(id=>yardAlertMatchesDonor(id,d))&&!seen.has(d.id)){hits.push({y,d});seen.add(d.id)}S.yardAlertSeen=[...seen].slice(-160);if(hits.length){const h=hits[0],c=cars.find(x=>x.id===h.d.carId);addLog(`PULL-A-PART ALERT: ${h.y.name} just listed a ${yardDonorName(h.d,c)} from the same generation as one of your alerts. It is ${h.y.distance} miles away.`,'good')}}
+function toggleYardAlertForCurrent(){S.yardAlertCarIds=S.yardAlertCarIds||[];const id=S.car.id,i=S.yardAlertCarIds.indexOf(id);if(i>=0){S.yardAlertCarIds.splice(i,1);addLog(`Junkyard alerts turned off for the ${S.car.genStart}-${S.car.genEnd} ${S.car.make} generation.`,'day')}else{S.yardAlertCarIds.push(id);addLog(`Junkyard alerts enabled for the ${S.car.genStart}-${S.car.genEnd} generation. Same-generation donor arrivals can now ping the log.`,'good')}openJunkyardFinder();render()}
+function topUpYard(y,arr,target,freshAgeMax=2){let added=0;while(arr.length<target){arr.push(makeYardDonor(y.id,rand(0,freshAgeMax),Math.random()<.14?S.car.id:null));added++}return added}
+function ensureYardNetwork(){
+ const today=dayNum();if(!S.yardsData)S.yardsData={};S.yardAlertCarIds=S.yardAlertCarIds||[];S.yardAlertSeen=S.yardAlertSeen||[];S.yardDailyArrivals=S.yardDailyArrivals||{};
+ if(!S.yardsDay){
+  for(const y of yardLocations){const target=yardStockTarget(y);S.yardsData[y.id]=[];S.yardDailyArrivals[y.id]=topUpYard(y,S.yardsData[y.id],target,16)}
+  S.yardsDay=today;checkYardAlerts();return
+ }
+ if(today===S.yardsDay){
+  for(const y of yardLocations){const arr=S.yardsData[y.id]||[];const min=y.stockMin||7;S.yardDailyArrivals[y.id]=(S.yardDailyArrivals[y.id]||0)+topUpYard(y,arr,min,3);S.yardsData[y.id]=arr}
+  checkYardAlerts();return
+ }
+ const delta=Math.max(1,today-S.yardsDay);S.yardDailyArrivals={};
+ for(const y of yardLocations){
+  let arr=S.yardsData[y.id]||[];
+  for(const d of arr){if(!d.displayYear){const c=cars.find(x=>x.id===d.carId);d.displayYear=rand(c?.genStart||c?.year||1996,c?.genEnd||c?.year||1996)}d.daysOnYard+=delta;d.hiddenParts=d.hiddenParts||[];for(const p of [...d.parts,...d.hiddenParts])if(p.present&&!p.attempted&&Math.random()<yardAttritionChance(d.daysOnYard,yardPartRarity(p),delta))p.present=false}
+  arr=arr.filter(d=>d.daysOnYard<=35&&!(d.daysOnYard>18&&Math.random()<.08*delta));
+  let turnover=Math.min(arr.length,delta+(Math.random()<Math.min(.75,.30*delta)?1:0));
+  while(turnover>0&&arr.length){const candidates=arr.map((d,i)=>({d,i})).filter(x=>x.d.daysOnYard>=2);if(!candidates.length)break;const pick=candidates[rand(0,candidates.length-1)].i;arr.splice(pick,1);turnover--}
+  const target=yardStockTarget(y);while(arr.length>target){let oldest=0;for(let i=1;i<arr.length;i++)if(arr[i].daysOnYard>arr[oldest].daysOnYard)oldest=i;arr.splice(oldest,1)}
+  S.yardDailyArrivals[y.id]=topUpYard(y,arr,target,2);S.yardsData[y.id]=arr
+ }
+ S.yardsDay=today;S.yardTrip=null;checkYardAlerts()
+}
+function yardOpenNow(){const m=minuteOfDay();return m>=480&&m<1140}
+function yardRushWindow(){const m=minuteOfDay();return m>=1080&&m<1140}
+function yardStatusText(){const m=minuteOfDay();if(m<480)return `CLOSED - opens 8:00 AM`;if(m>=1140)return `CLOSED - opens tomorrow 8:00 AM`;if(m>=1080)return `OPEN - closes 7:00 PM / RUSH WINDOW`;return `OPEN - closes 7:00 PM`}
+function oneWayYardHours(y,mode='project'){return Math.max(.18,y.distance/(mode==='project'?32:34))}
+function canReachYardBeforeClose(y,mode='project'){const arrival=minuteOfDay()+Math.round(oneWayYardHours(y,mode)*60);return dayNum()===Math.floor((S.totalMin+Math.round(oneWayYardHours(y,mode)*60))/1440)+1&&arrival<1140&&arrival>=480}
+
+</script>
 <!--ANDROID_SCRIPT:src/systems/junkyard.js-->
 <!--ANDROID_SCRIPT:src/systems/junkyard-pull.js-->
 <!--ANDROID_SCRIPT:src/systems/swap-meet.js-->
