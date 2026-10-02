@@ -1,0 +1,6 @@
+.gradle/
+.gradle-bootstrap/
+gradle-8.13-bin.zip
+local.properties
+**/build/
+*.iml
