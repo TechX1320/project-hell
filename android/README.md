@@ -39,3 +39,8 @@ The output is:
 ## Play Store later
 
 No Play developer registration is needed for local APK testing. When the beta is stable, create a release signing key and build an Android App Bundle (AAB) for Play Console.
+
+
+### Android 15/16 display handling
+
+The native WebView shell applies system-bar insets itself so the game UI is not hidden under the status/navigation bars when targeting API 36. Rotation and fold/unfold screen-size changes are handled without recreating the Activity, which prevents unnecessary game reloads on foldables and tablets.

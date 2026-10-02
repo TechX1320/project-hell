@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import android.view.WindowInsets;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -52,7 +54,25 @@ public class MainActivity extends Activity {
             }
         });
 
+        webView.setOnApplyWindowInsetsListener((View v, WindowInsets insets) -> {
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets bars = insets.getInsets(
+                    WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars()
+                );
+                v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            } else {
+                v.setPadding(
+                    insets.getSystemWindowInsetLeft(),
+                    insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(),
+                    insets.getSystemWindowInsetBottom()
+                );
+            }
+            return insets;
+        });
+
         setContentView(webView);
+        webView.requestApplyInsets();
         webView.loadUrl("file:///android_asset/wrenchlife/index.html");
     }
 
