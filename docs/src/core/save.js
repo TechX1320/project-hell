@@ -22,7 +22,9 @@ function saveSummary(slot){
 function allSaveSummaries(){return [1,2,3].map(saveSummary)}
 function newestSaveSlot(){return allSaveSummaries().filter(Boolean).sort((a,b)=>b.savedAt-a.savedAt)[0]?.slot||null}
 function saveGame(){
-  if(!S||!activeSaveSlot)return false;
+  if(!S)return false;
+  if(weeklyChallengeMode())return saveWeeklyChallenge();
+  if(!activeSaveSlot)return false;
   try{
     syncActiveProject();
     const state=JSON.parse(JSON.stringify(S));
