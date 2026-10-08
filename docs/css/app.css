@@ -64,3 +64,5 @@ body.portrait-phone .menu-shell{padding:14px}body.portrait-phone .menu-logo{font
 .stat.no-start-alert:hover{background:#30191c}
 @keyframes noStartPulse{0%,100%{box-shadow:0 0 0 0 rgba(244,123,123,0)}50%{box-shadow:0 0 0 2px rgba(244,123,123,.8) inset,0 0 12px rgba(244,123,123,.22)}}
 @media (prefers-reduced-motion:reduce){.stat.no-start-alert{animation:none;box-shadow:0 0 0 2px rgba(244,123,123,.65) inset}}
+
+.challenge-tag{border-color:var(--warn);color:var(--warn);font-weight:700}.challenge-tag:hover{background:#272418}body.portrait-phone .challenge-tag{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
