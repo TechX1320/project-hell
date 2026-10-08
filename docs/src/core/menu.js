@@ -13,6 +13,7 @@ function renderMainMenu(){
   btn.innerHTML=summary?`CONTINUE<br><span class="small">Slot ${summary.slot} - Day ${summary.day} - ${summary.car}</span>`:'CONTINUE<br><span class="small">No local save yet</span>';
   const slotText=allSaveSummaries().filter(Boolean).length;
   $('localSaveStatus').textContent=slotText?`${slotText}/3 local save slots in use`:'No local saves yet';
+  renderWeeklyChallengeMenuButton();
   const eb=$('endingsBtn');if(eb)eb.innerHTML=`ENDINGS<br><span class="small">Good ${goodEndingCount()}/${Object.keys(GOOD_ENDING_DEFS).length} - Bad ${badEndingUniqueCount()}/${Object.keys(BAD_ENDING_DEFS).length}</span>`;
 }
 
@@ -73,7 +74,8 @@ function toggleFtueDefault(){const s=getSettings();updateSettings({ftueDefault:!
 
 function openGameMenu(){
   saveGame();
-  showModal(`<h2>Wrench Life</h2><div class="card"><div class="market-meta"><div><span>SAVE SLOT</span><b>${activeSaveSlot||'-'}</b></div><div><span>SEED</span><b>${S.runSeed||currentRunSeed()}</b></div><div><span>DAY</span><b>${dayNum()}</b></div><div><span>AUTOSAVE</span><b>${lastSaveError?'ERROR':'OK'}</b></div></div></div><div class="modal-actions"><button class="primary" onclick="closeModal()">RESUME</button><button onclick="saveAndReturnToMenu()">SAVE + MAIN MENU</button><button onclick="openRunInfo()">RUN / SEED INFO</button><button onclick="openSettings()">SETTINGS</button></div>`)
+  const challenge=weeklyChallengeMode()?`<div><span>CHALLENGE</span><b>${S.weeklyChallenge.id}</b></div>`:`<div><span>SAVE SLOT</span><b>${activeSaveSlot||'-'}</b></div>`;
+  showModal(`<h2>Wrench Life</h2><div class="card"><div class="market-meta">${challenge}<div><span>SEED</span><b>${S.runSeed||currentRunSeed()}</b></div><div><span>DAY</span><b>${dayNum()}</b></div><div><span>AUTOSAVE</span><b>${lastSaveError?'ERROR':'OK'}</b></div></div></div><div class="modal-actions"><button class="primary" onclick="closeModal()">RESUME</button><button onclick="saveAndReturnToMenu()">SAVE + MAIN MENU</button>${weeklyChallengeMode()?'<button onclick="openWeeklyChallengeScore()">CHALLENGE SCORE</button>':'<button onclick="openRunInfo()">RUN / SEED INFO</button>'}<button onclick="openSettings()">SETTINGS</button></div>`)
 }
 
 function saveAndReturnToMenu(){saveGame();closeModal();initMainMenu()}
