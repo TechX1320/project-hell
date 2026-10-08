@@ -23,7 +23,7 @@
         <button id="continueBtn" class="primary" onclick="continueLatest()">CONTINUE</button>
         <button onclick="openNewGameMenu()">NEW GAME<br><span class="small">Random or player-entered seed</span></button>
         <button onclick="openLoadMenu()">LOCAL SAVES<br><span class="small">3 browser save slots</span></button>
-        <button disabled>WEEKLY CHALLENGE<br><span class="small">Seeded challenge mode coming next</span></button>
+        <button id="weeklyChallengeBtn" onclick="openWeeklyChallengeMenu()">WEEKLY CHALLENGE<br><span class="small">Loading this week...</span></button>
         <button id="endingsBtn" onclick="openEndingsArchive()">ENDINGS<br><span class="small">Good 0/5 - Bad 0/5</span></button>
         <button onclick="openSettings()">SETTINGS</button>
       </div>
@@ -35,7 +35,7 @@
 
   <section id="game" class="game hidden">
     <div class="panel">
-      <div class="clockline"><h2 id="carName">Project Car</h2><div><button id="seedBtn" class="tag seed-button" title="Run seed"></button><span id="clockTag" class="tag"></span><span id="awakeTag" class="tag"></span></div></div>
+      <div class="clockline"><h2 id="carName">Project Car</h2><div><button id="challengeScoreBtn" class="tag seed-button challenge-tag hidden" title="Weekly Challenge score"></button><button id="seedBtn" class="tag seed-button" title="Run seed"></button><span id="clockTag" class="tag"></span><span id="awakeTag" class="tag"></span></div></div>
       <div class="topstats">
         <div class="stat"><span>DAY</span><b id="day">1</b></div>
         <div class="stat"><span>TIME</span><b id="time">8:00 AM</b></div>
@@ -91,6 +91,7 @@
 <script src="src/core/rng.js"></script>
 <script src="src/core/state.js"></script>
 <script src="src/core/save.js"></script>
+<script src="src/core/weekly-challenge.js"></script>
 <script src="src/systems/bad-endings.js"></script>
 <script src="src/systems/good-endings.js"></script>
 <script src="src/core/vehicle.js"></script>
